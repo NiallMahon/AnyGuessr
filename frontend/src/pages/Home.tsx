@@ -8,7 +8,7 @@ function Home() {
       <p>Test your knowledge and guess the answers!</p>
       <br></br>
       <br></br>
-      <h1><Link className="map-link" to="/map">MAP</Link></h1>
+      <h1><Link className="map-link" to="/map">Start</Link></h1>
     </div>
   );
 }
