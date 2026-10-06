@@ -1,0 +1,25 @@
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.login {
+  width: 100%;
+  padding: 60px 20px;
+  box-sizing: border-box;
+}
+
+.login-form label {
+  text-align: left;
+}
+
+.login-form input {
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
