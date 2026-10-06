@@ -1,7 +1,10 @@
 package com.anyguessr.anyguessrbackend.gameplay.domain;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public class QuizSession {
@@ -16,12 +19,30 @@ public class QuizSession {
     private boolean correctionRequired;
     private QuizStatus status;
 
+    /*
+     * Normal constructor used by the application.
+     * Targets are placed into a random order.
+     */
     public QuizSession(
             QuizSessionId sessionId,
             List<RegionId> targetRegionIds
     ) {
+        this(sessionId, targetRegionIds, new Random());
+    }
+
+    /*
+     * Constructor used by tests so that a fixed Random seed
+     * can make the target order reproducible.
+     */
+    QuizSession(
+            QuizSessionId sessionId,
+            List<RegionId> targetRegionIds,
+            Random random
+    ) {
         if (sessionId == null) {
-            throw new IllegalArgumentException("Quiz session ID must not be null");
+            throw new IllegalArgumentException(
+                    "Quiz session ID must not be null"
+            );
         }
 
         if (targetRegionIds == null || targetRegionIds.isEmpty()) {
@@ -30,8 +51,20 @@ public class QuizSession {
             );
         }
 
+        if (random == null) {
+            throw new IllegalArgumentException(
+                    "Random generator must not be null"
+            );
+        }
+
         this.sessionId = sessionId;
-        this.targetRegionIds = List.copyOf(targetRegionIds);
+
+        List<RegionId> shuffledTargets =
+                new ArrayList<>(targetRegionIds);
+
+        Collections.shuffle(shuffledTargets, random);
+
+        this.targetRegionIds = List.copyOf(shuffledTargets);
         this.completedRegionIds = new HashSet<>();
 
         this.currentTarget = this.targetRegionIds.get(0);
@@ -39,6 +72,10 @@ public class QuizSession {
         this.answeredTargets = 0;
         this.correctionRequired = false;
         this.status = QuizStatus.IN_PROGRESS;
+    }
+
+    public RegionId getCurrentTarget() {
+        return currentTarget;
     }
 
     public GuessResult submitGuess(RegionId selectedRegionId) {
@@ -57,14 +94,19 @@ public class QuizSession {
 
         RegionId targetForThisGuess = currentTarget;
 
-        // The player's first guess was already wrong.
-        // Further clicks do not affect accuracy.
+        /*
+         * The player's first scored attempt was already wrong.
+         * They now need to click the correct region to continue.
+         *
+         * These correction clicks must NOT change accuracy.
+         */
         if (correctionRequired) {
 
             boolean selectedCorrectTarget =
                     selectedRegionId.equals(currentTarget);
 
             if (selectedCorrectTarget) {
+
                 completedRegionIds.add(currentTarget);
                 correctionRequired = false;
 
@@ -82,13 +124,17 @@ public class QuizSession {
             );
         }
 
-        // This is the one scored first attempt for the target.
+        /*
+         * This is the player's one scored first attempt
+         * for the current target.
+         */
         answeredTargets++;
 
         boolean correct =
                 selectedRegionId.equals(currentTarget);
 
         if (correct) {
+
             correctAnswers++;
             completedRegionIds.add(currentTarget);
 
@@ -99,6 +145,12 @@ public class QuizSession {
             }
 
         } else {
+
+            /*
+             * Accuracy has already been affected by the wrong answer.
+             * The player must now click the revealed correct region
+             * before they can continue.
+             */
             correctionRequired = true;
         }
 
@@ -109,8 +161,15 @@ public class QuizSession {
         );
     }
 
+    /*
+     * The targets were shuffled when the QuizSession was created.
+     * Therefore moving through this list gives a random order
+     * without returning completed targets.
+     */
     private void moveToNextTarget() {
+
         for (RegionId regionId : targetRegionIds) {
+
             if (!completedRegionIds.contains(regionId)) {
                 currentTarget = regionId;
                 return;

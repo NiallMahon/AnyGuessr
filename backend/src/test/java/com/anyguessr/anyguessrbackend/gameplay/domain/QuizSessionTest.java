@@ -1,10 +1,10 @@
 package com.anyguessr.anyguessrbackend.gameplay.domain;
 
 import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.Random;
+
 
 class QuizSessionTest {
 
@@ -32,9 +32,10 @@ void incorrectFirstGuessRequiresCorrectionAndReducesAccuracy() {
     RegionId germany = new RegionId("DE");
 
     QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            List.of(france, germany)
-    );
+        new QuizSessionId("quiz-1"),
+        List.of(france, germany),
+        new Random(123)
+);
 
     GuessResult result = session.submitGuess(germany);
 
@@ -52,9 +53,10 @@ void correctiveClickDoesNotChangeAccuracy() {
     RegionId germany = new RegionId("DE");
 
     QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            List.of(france, germany)
-    );
+        new QuizSessionId("quiz-1"),
+        List.of(france, germany),
+        new Random(123)
+);
 
     session.submitGuess(germany);   // wrong first attempt
 
@@ -76,9 +78,10 @@ void wrongClickDuringCorrectionDoesNotChangeAccuracyOrProgress() {
     RegionId spain = new RegionId("ES");
 
     QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            List.of(france, germany, spain)
-    );
+        new QuizSessionId("quiz-1"),
+        List.of(france, germany),
+        new Random(123)
+);
 
     session.submitGuess(germany); // first scored guess is wrong
 
@@ -94,5 +97,45 @@ void wrongClickDuringCorrectionDoesNotChangeAccuracyOrProgress() {
     assertEquals(0.0, secondWrongClick.accuracy());
 
     assertFalse(secondWrongClick.quizComplete());
+}
+
+	@Test
+void targetOrderIsRandomisedButContainsOnlyQuizRegions() {
+    RegionId france = new RegionId("FR");
+    RegionId germany = new RegionId("DE");
+    RegionId spain = new RegionId("ES");
+
+    QuizSession session = new QuizSession(
+            new QuizSessionId("quiz-random"),
+            List.of(france, germany, spain),
+            new Random(123)
+    );
+
+    RegionId currentTarget = session.getCurrentTarget();
+
+    assertTrue(
+            List.of(france, germany, spain).contains(currentTarget)
+    );
+}
+
+	@Test
+void completedTargetIsNotSelectedAgain() {
+    RegionId france = new RegionId("FR");
+    RegionId germany = new RegionId("DE");
+    RegionId spain = new RegionId("ES");
+
+    QuizSession session = new QuizSession(
+            new QuizSessionId("quiz-1"),
+            List.of(france, germany, spain),
+            new Random(123)
+    );
+
+    RegionId firstTarget = session.getCurrentTarget();
+
+    session.submitGuess(firstTarget);
+
+    RegionId secondTarget = session.getCurrentTarget();
+
+    assertNotEquals(firstTarget, secondTarget);
 }
 }
