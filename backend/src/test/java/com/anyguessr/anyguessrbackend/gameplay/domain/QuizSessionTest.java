@@ -77,20 +77,31 @@ void wrongClickDuringCorrectionDoesNotChangeAccuracyOrProgress() {
     RegionId germany = new RegionId("DE");
     RegionId spain = new RegionId("ES");
 
+    List<RegionId> regions = List.of(france, germany, spain);
+
     QuizSession session = new QuizSession(
-        new QuizSessionId("quiz-1"),
-        List.of(france, germany),
-        new Random(123)
-);
+            new QuizSessionId("quiz-1"),
+            regions,
+            new Random(123)
+    );
 
-    session.submitGuess(germany); // first scored guess is wrong
+    RegionId target = session.getCurrentTarget();
 
-    GuessResult secondWrongClick = session.submitGuess(spain);
+    List<RegionId> wrongRegions = regions.stream()
+            .filter(region -> !region.equals(target))
+            .toList();
+
+    // First wrong click: this is the one scored attempt.
+    session.submitGuess(wrongRegions.get(0));
+
+    // Another valid map region is clicked while correction is required.
+    GuessResult secondWrongClick =
+            session.submitGuess(wrongRegions.get(1));
 
     assertFalse(secondWrongClick.correct());
     assertTrue(secondWrongClick.correctionRequired());
 
-    assertEquals(france, secondWrongClick.targetRegionId());
+    assertEquals(target, secondWrongClick.targetRegionId());
 
     assertEquals(0, secondWrongClick.correctAnswers());
     assertEquals(1, secondWrongClick.answeredTargets());
@@ -98,7 +109,6 @@ void wrongClickDuringCorrectionDoesNotChangeAccuracyOrProgress() {
 
     assertFalse(secondWrongClick.quizComplete());
 }
-
 	@Test
 void targetOrderIsRandomisedButContainsOnlyQuizRegions() {
     RegionId france = new RegionId("FR");
@@ -137,5 +147,22 @@ void completedTargetIsNotSelectedAgain() {
     RegionId secondTarget = session.getCurrentTarget();
 
     assertNotEquals(firstTarget, secondTarget);
+}
+	@Test
+void regionOutsideQuizIsRejected() {
+    RegionId france = new RegionId("FR");
+    RegionId germany = new RegionId("DE");
+    RegionId brazil = new RegionId("BR");
+
+    QuizSession session = new QuizSession(
+            new QuizSessionId("quiz-1"),
+            List.of(france, germany),
+            new Random(123)
+    );
+
+    assertThrows(
+            IllegalArgumentException.class,
+            () -> session.submitGuess(brazil)
+    );
 }
 }

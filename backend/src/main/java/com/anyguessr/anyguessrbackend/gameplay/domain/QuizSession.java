@@ -85,6 +85,11 @@ public class QuizSession {
                     "Selected region must not be null"
             );
         }
+	if (!targetRegionIds.contains(selectedRegionId)) {
+    throw new IllegalArgumentException(
+            "Selected region does not belong to this quiz"
+    );
+}
 
         if (status == QuizStatus.COMPLETE) {
             throw new IllegalStateException(
