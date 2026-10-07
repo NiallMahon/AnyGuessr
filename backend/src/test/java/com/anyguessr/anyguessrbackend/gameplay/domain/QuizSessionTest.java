@@ -165,4 +165,22 @@ void regionOutsideQuizIsRejected() {
             () -> session.submitGuess(brazil)
     );
 }
+	@Test
+void guessAfterQuizCompletionIsRejected() {
+    RegionId france = new RegionId("FR");
+
+    QuizSession session = new QuizSession(
+            new QuizSessionId("quiz-1"),
+            List.of(france)
+    );
+
+    RegionId target = session.getCurrentTarget();
+
+    session.submitGuess(target);
+
+    assertThrows(
+            IllegalStateException.class,
+            () -> session.submitGuess(target)
+    );
+}
 }
