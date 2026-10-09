@@ -2,7 +2,7 @@ import "./Profile.css";
 import {useEffect, useState} from "react";
 
 type UserProfile = {
-    id: number;
+    userId: string;
     name: string;
     location: string;
     intials: string;
@@ -20,7 +20,7 @@ function Profile() {
     useEffect(() => {
         async function fetchProfile() {
             try {
-                const response = await fetch('/api/profile');
+                const response = await fetch('http://localhost:8080/profile/676767');
                 if (!response.ok) {
                     throw new Error('Failed to fetch profile');
                 }
