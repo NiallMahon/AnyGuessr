@@ -2,16 +2,11 @@ import "./Profile.css";
 import {useEffect, useState} from "react";
 
 type UserProfile = {
-    id: number;
+    userId: string;
     name: string;
     location: string;
-    memberSince: string;
     intials: string;
-    trophies: number;
-    highScore: number;
     gamesPlayed: number;
-    gamesWon: number;
-    winRate: number;
 };
 
 
@@ -25,7 +20,7 @@ function Profile() {
     useEffect(() => {
         async function fetchProfile() {
             try {
-                const response = await fetch('/api/profile');
+                const response = await fetch('http://localhost:8080/profile/676767');
                 if (!response.ok) {
                     throw new Error('Failed to fetch profile');
                 }
@@ -61,7 +56,6 @@ function Profile() {
                 <div className="profile-details">
                     <h1>{profile?.name}</h1>
                     <p>{profile?.location}</p>
-                    <p>Member since {profile?.memberSince}</p>
                 </div>
                 {/* Edit profile button */}
                 <button className="profile-edit" type="button">
@@ -69,12 +63,8 @@ function Profile() {
                 </button>
             </section>
             {/* Profile stats section with trophies, high score, games played, games won, and win rate */}
-            <section className="profile-stats">
-                <div>Trophies: {profile?.trophies}</div>
-                <div>High Score: {profile?.highScore}</div>
+            <section className="profile-stats">             
                 <div>Games Played: {profile?.gamesPlayed}</div>
-                <div>Games Won: {profile?.gamesWon}</div>
-                <div>Win Rate: {profile?.winRate}%</div>
             </section>
             {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
             <div className="profile-layout">
