@@ -1,6 +1,49 @@
 import "./Profile.css";
+import {useEffect, useState} from "react";
+
+type UserProfile = {
+    id: number;
+    name: string;
+    location: string;
+    intials: string;
+    gamesPlayed: number;
+};
+
+
 //Simple profile page for the user, with a profile picture, name, location, and stats. Also would include recent games, comments, and friends
 function Profile() {
+
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchProfile() {
+            try {
+                const response = await fetch('/api/profile');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch profile');
+                }
+                const data = await response.json();
+                setProfile(data);
+            } catch (err) {
+                setError("Failed to load profile");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchProfile();
+    }, []);
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
+
     return (
         // Main profile container
         <main className="profile">
@@ -8,12 +51,11 @@ function Profile() {
             <section className="profile-header">
                     <div className="profile-avatar">
                         {/* Placeholder for profile picture, currently just initials */}
-                        <span>NM</span>
+                        <span>{profile?.intials}</span>
                     </div>
                 <div className="profile-details">
-                    <h1>Niall Mahon</h1>
-                    <p>Furbo, Ireland</p>
-                    <p>Member since September 2026</p>
+                    <h1>{profile?.name}</h1>
+                    <p>{profile?.location}</p>
                 </div>
                 {/* Edit profile button */}
                 <button className="profile-edit" type="button">
@@ -21,12 +63,8 @@ function Profile() {
                 </button>
             </section>
             {/* Profile stats section with trophies, high score, games played, games won, and win rate */}
-            <section className="profile-stats">
-                <div>Trophies: 0</div>
-                <div>High Score: 0</div>
-                <div>Games Played: 989</div>
-                <div>Games Won: 0</div>
-                <div>Win Rate: 0%</div>
+            <section className="profile-stats">             
+                <div>Games Played: {profile?.gamesPlayed}</div>
             </section>
             {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
             <div className="profile-layout">
