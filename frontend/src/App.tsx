@@ -2,12 +2,11 @@ import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Profile from './pages/Profile'
-import Login from './pages/Login'
-import Register from "./pages/Register";
 import './App.css'
 import WorldMap from "./components/Map/WorldMap";
 import MapSelector from "./pages/MapSelector";
-import MapMaker from "./pages/MapMaker";
+import MapMaker from './pages/MapMaker';
+
 
 function App() {
   return(
@@ -16,10 +15,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/mapselector" element={<MapSelector />} />
-        <Route path="/mapmaker" element={<MapMaker />} />
+        <Route path='/mapmaker' element={<MapMaker />} />
+        <Route path='/mapselector' element={<MapSelector />} />
         <Route
           path="/map"
           element={
