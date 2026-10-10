@@ -1,12 +1,27 @@
 package com.anyguessr.anyguessrbackend.gameplay.domain;
 
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
-import static org.junit.jupiter.api.Assertions.*;
 import java.util.Random;
 
+import static org.junit.jupiter.api.Assertions.*;
 
 class QuizSessionTest {
+
+    @Test
+    void quizSessionBelongsToSelectedMap() {
+        RegionId france = new RegionId("FR");
+        MapId worldMap = new MapId("world-map");
+
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                worldMap,
+                List.of(france)
+        );
+
+        assertEquals(worldMap, session.getMapId());
+    }
 
     @Test
     void correctFirstGuessIsRecordedAsCorrect() {
@@ -14,6 +29,7 @@ class QuizSessionTest {
 
         QuizSession session = new QuizSession(
                 new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
                 List.of(france)
         );
 
@@ -26,161 +42,198 @@ class QuizSessionTest {
         assertEquals(100.0, result.accuracy());
         assertTrue(result.quizComplete());
     }
-	@Test
-void incorrectFirstGuessRequiresCorrectionAndReducesAccuracy() {
-    RegionId france = new RegionId("FR");
-    RegionId germany = new RegionId("DE");
 
-    QuizSession session = new QuizSession(
-        new QuizSessionId("quiz-1"),
-        List.of(france, germany),
-        new Random(123)
-);
+    @Test
+    void incorrectFirstGuessRequiresCorrectionAndReducesAccuracy() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
 
-    GuessResult result = session.submitGuess(germany);
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
+                List.of(france, germany),
+                new Random(123)
+        );
 
-    assertFalse(result.correct());
-    assertTrue(result.correctionRequired());
-    assertEquals(france, result.targetRegionId());
-    assertEquals(0, result.correctAnswers());
-    assertEquals(1, result.answeredTargets());
-    assertEquals(0.0, result.accuracy());
-    assertFalse(result.quizComplete());
-}
-	@Test
-void correctiveClickDoesNotChangeAccuracy() {
-    RegionId france = new RegionId("FR");
-    RegionId germany = new RegionId("DE");
+        GuessResult result = session.submitGuess(germany);
 
-    QuizSession session = new QuizSession(
-        new QuizSessionId("quiz-1"),
-        List.of(france, germany),
-        new Random(123)
-);
+        assertFalse(result.correct());
+        assertTrue(result.correctionRequired());
+        assertEquals(france, result.targetRegionId());
+        assertEquals(0, result.correctAnswers());
+        assertEquals(1, result.answeredTargets());
+        assertEquals(0.0, result.accuracy());
+        assertFalse(result.quizComplete());
+    }
 
-    session.submitGuess(germany);   // wrong first attempt
+    @Test
+    void correctiveClickDoesNotChangeAccuracy() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
 
-    GuessResult correction = session.submitGuess(france);
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
+                List.of(france, germany),
+                new Random(123)
+        );
 
-    assertTrue(correction.correct());
-    assertFalse(correction.correctionRequired());
+        session.submitGuess(germany);
 
-    assertEquals(0, correction.correctAnswers());
-    assertEquals(1, correction.answeredTargets());
-    assertEquals(0.0, correction.accuracy());
+        GuessResult correction = session.submitGuess(france);
 
-    assertFalse(correction.quizComplete());
-}
-	@Test
-void wrongClickDuringCorrectionDoesNotChangeAccuracyOrProgress() {
-    RegionId france = new RegionId("FR");
-    RegionId germany = new RegionId("DE");
-    RegionId spain = new RegionId("ES");
+        assertTrue(correction.correct());
+        assertFalse(correction.correctionRequired());
+        assertEquals(0, correction.correctAnswers());
+        assertEquals(1, correction.answeredTargets());
+        assertEquals(0.0, correction.accuracy());
+        assertFalse(correction.quizComplete());
+    }
 
-    List<RegionId> regions = List.of(france, germany, spain);
+    @Test
+    void wrongClickDuringCorrectionDoesNotChangeAccuracyOrProgress() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
+        RegionId spain = new RegionId("ES");
 
-    QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            regions,
-            new Random(123)
-    );
+        List<RegionId> regions = List.of(
+                france,
+                germany,
+                spain
+        );
 
-    RegionId target = session.getCurrentTarget();
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
+                regions,
+                new Random(123)
+        );
 
-    List<RegionId> wrongRegions = regions.stream()
-            .filter(region -> !region.equals(target))
-            .toList();
+        RegionId target = session.getCurrentTarget();
 
-    // First wrong click: this is the one scored attempt.
-    session.submitGuess(wrongRegions.get(0));
+        List<RegionId> wrongRegions = regions.stream()
+                .filter(region -> !region.equals(target))
+                .toList();
 
-    // Another valid map region is clicked while correction is required.
-    GuessResult secondWrongClick =
-            session.submitGuess(wrongRegions.get(1));
+        // First wrong click is the one scored attempt.
+        session.submitGuess(wrongRegions.get(0));
 
-    assertFalse(secondWrongClick.correct());
-    assertTrue(secondWrongClick.correctionRequired());
+        // A second wrong click during correction must not affect accuracy.
+        GuessResult secondWrongClick =
+                session.submitGuess(wrongRegions.get(1));
 
-    assertEquals(target, secondWrongClick.targetRegionId());
+        assertFalse(secondWrongClick.correct());
+        assertTrue(secondWrongClick.correctionRequired());
 
-    assertEquals(0, secondWrongClick.correctAnswers());
-    assertEquals(1, secondWrongClick.answeredTargets());
-    assertEquals(0.0, secondWrongClick.accuracy());
+        assertEquals(
+                target,
+                secondWrongClick.targetRegionId()
+        );
 
-    assertFalse(secondWrongClick.quizComplete());
-}
-	@Test
-void targetOrderIsRandomisedButContainsOnlyQuizRegions() {
-    RegionId france = new RegionId("FR");
-    RegionId germany = new RegionId("DE");
-    RegionId spain = new RegionId("ES");
+        assertEquals(
+                0,
+                secondWrongClick.correctAnswers()
+        );
 
-    QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-random"),
-            List.of(france, germany, spain),
-            new Random(123)
-    );
+        assertEquals(
+                1,
+                secondWrongClick.answeredTargets()
+        );
 
-    RegionId currentTarget = session.getCurrentTarget();
+        assertEquals(
+                0.0,
+                secondWrongClick.accuracy()
+        );
 
-    assertTrue(
-            List.of(france, germany, spain).contains(currentTarget)
-    );
-}
+        assertFalse(secondWrongClick.quizComplete());
+    }
 
-	@Test
-void completedTargetIsNotSelectedAgain() {
-    RegionId france = new RegionId("FR");
-    RegionId germany = new RegionId("DE");
-    RegionId spain = new RegionId("ES");
+    @Test
+    void targetOrderIsRandomisedButContainsOnlyQuizRegions() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
+        RegionId spain = new RegionId("ES");
 
-    QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            List.of(france, germany, spain),
-            new Random(123)
-    );
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-random"),
+                new MapId("world-map"),
+                List.of(france, germany, spain),
+                new Random(123)
+        );
 
-    RegionId firstTarget = session.getCurrentTarget();
+        RegionId currentTarget =
+                session.getCurrentTarget();
 
-    session.submitGuess(firstTarget);
+        assertTrue(
+                List.of(france, germany, spain)
+                        .contains(currentTarget)
+        );
+    }
 
-    RegionId secondTarget = session.getCurrentTarget();
+    @Test
+    void completedTargetIsNotSelectedAgain() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
+        RegionId spain = new RegionId("ES");
 
-    assertNotEquals(firstTarget, secondTarget);
-}
-	@Test
-void regionOutsideQuizIsRejected() {
-    RegionId france = new RegionId("FR");
-    RegionId germany = new RegionId("DE");
-    RegionId brazil = new RegionId("BR");
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
+                List.of(france, germany, spain),
+                new Random(123)
+        );
 
-    QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            List.of(france, germany),
-            new Random(123)
-    );
+        RegionId firstTarget =
+                session.getCurrentTarget();
 
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> session.submitGuess(brazil)
-    );
-}
-	@Test
-void guessAfterQuizCompletionIsRejected() {
-    RegionId france = new RegionId("FR");
+        session.submitGuess(firstTarget);
 
-    QuizSession session = new QuizSession(
-            new QuizSessionId("quiz-1"),
-            List.of(france)
-    );
+        RegionId secondTarget =
+                session.getCurrentTarget();
 
-    RegionId target = session.getCurrentTarget();
+        assertNotEquals(
+                firstTarget,
+                secondTarget
+        );
+    }
 
-    session.submitGuess(target);
+    @Test
+    void regionOutsideQuizIsRejected() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
+        RegionId brazil = new RegionId("BR");
 
-    assertThrows(
-            IllegalStateException.class,
-            () -> session.submitGuess(target)
-    );
-}
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
+                List.of(france, germany),
+                new Random(123)
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> session.submitGuess(brazil)
+        );
+    }
+
+    @Test
+    void guessAfterQuizCompletionIsRejected() {
+        RegionId france = new RegionId("FR");
+
+        QuizSession session = new QuizSession(
+                new QuizSessionId("quiz-1"),
+                new MapId("world-map"),
+                List.of(france)
+        );
+
+        RegionId target =
+                session.getCurrentTarget();
+
+        session.submitGuess(target);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> session.submitGuess(target)
+        );
+    }
 }

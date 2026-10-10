@@ -10,6 +10,7 @@ import java.util.Set;
 public class QuizSession {
 
     private final QuizSessionId sessionId;
+    private final MapId mapId;
     private final List<RegionId> targetRegionIds;
     private final Set<RegionId> completedRegionIds;
 
@@ -23,19 +24,20 @@ public class QuizSession {
      * Normal constructor used by the application.
      * Targets are placed into a random order.
      */
-    public QuizSession(
-            QuizSessionId sessionId,
-            List<RegionId> targetRegionIds
-    ) {
-        this(sessionId, targetRegionIds, new Random());
-    }
-
+public QuizSession(
+    QuizSessionId sessionId,
+    MapId mapId,
+    List<RegionId> targetRegionIds
+) {
+    this(sessionId, mapId, targetRegionIds, new Random());
+}
     /*
      * Constructor used by tests so that a fixed Random seed
      * can make the target order reproducible.
      */
     QuizSession(
             QuizSessionId sessionId,
+       	    MapId mapId,
             List<RegionId> targetRegionIds,
             Random random
     ) {
@@ -44,6 +46,11 @@ public class QuizSession {
                     "Quiz session ID must not be null"
             );
         }
+	if (mapId == null) {
+    throw new IllegalArgumentException(
+            "Map ID must not be null"
+    );
+}
 
         if (targetRegionIds == null || targetRegionIds.isEmpty()) {
             throw new IllegalArgumentException(
@@ -58,6 +65,7 @@ public class QuizSession {
         }
 
         this.sessionId = sessionId;
+	this.mapId = mapId;
 
         List<RegionId> shuffledTargets =
                 new ArrayList<>(targetRegionIds);
@@ -73,7 +81,13 @@ public class QuizSession {
         this.correctionRequired = false;
         this.status = QuizStatus.IN_PROGRESS;
     }
+public QuizSessionId getSessionId() {
+    return sessionId;
+}
 
+	public MapId getMapId() {
+    return mapId;
+}
     public RegionId getCurrentTarget() {
         return currentTarget;
     }
