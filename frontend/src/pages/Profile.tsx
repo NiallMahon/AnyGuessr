@@ -2,11 +2,11 @@ import "./Profile.css";
 import {useEffect, useState} from "react";
 
 type UserProfile = {
-    userId: string;
+    id: number;
     name: string;
     location: string;
-    intials: string;
-    gamesPlayed: number;
+    initials: string;
+    gamesPlayed: number; 
 };
 
 
@@ -20,7 +20,8 @@ function Profile() {
     useEffect(() => {
         async function fetchProfile() {
             try {
-                const response = await fetch('http://localhost:8080/profile/676767');
+                const response = await fetch('http://localhost:8080/profile/1');
+
                 if (!response.ok) {
                     throw new Error('Failed to fetch profile');
                 }
@@ -51,7 +52,7 @@ function Profile() {
             <section className="profile-header">
                     <div className="profile-avatar">
                         {/* Placeholder for profile picture, currently just initials */}
-                        <span>{profile?.intials}</span>
+                        <span>{profile?.initials}</span>
                     </div>
                 <div className="profile-details">
                     <h1>{profile?.name}</h1>
@@ -63,7 +64,7 @@ function Profile() {
                 </button>
             </section>
             {/* Profile stats section with trophies, high score, games played, games won, and win rate */}
-            <section className="profile-stats">             
+            <section className="profile-stats">   
                 <div>Games Played: {profile?.gamesPlayed}</div>
             </section>
             {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
