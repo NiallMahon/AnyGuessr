@@ -1,0 +1,229 @@
+.map-maker {
+    padding: 0 16px 40px;
+    text-align: left;
+}
+
+.map-maker h1 {
+    text-align: center;
+}
+
+.map-maker-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.map-maker button,
+.file-button {
+    padding: 8px 12px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--text-h);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.map-maker button:hover:not(:disabled),
+.file-button:hover {
+    border-color: var(--accent-border);
+}
+
+.map-maker button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.map-maker input[type="text"] {
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--text-h);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.map-name-input {
+    min-width: 200px;
+}
+
+.mode-toggle {
+    display: flex;
+}
+
+.mode-toggle button:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.mode-toggle button:last-child {
+    border-radius: 0 6px 6px 0;
+    border-left: none;
+}
+
+.mode-toggle button.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+/* ----------------------------------------------------------- workspace */
+
+.map-workspace {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.map-editor {
+    flex: 1 1 560px;
+    max-width: 800px;
+}
+
+.map-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #f3f4f6;
+    touch-action: none;
+    user-select: none;
+}
+
+.map-canvas.drawing {
+    cursor: crosshair;
+}
+
+.polygon-label {
+    font-size: 14px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: #fff;
+    stroke: rgba(0, 0, 0, 0.75);
+    stroke-width: 3px;
+    paint-order: stroke;
+    pointer-events: none;
+    user-select: none;
+}
+
+.point-handle {
+    fill: #fff;
+    stroke: #1d4ed8;
+    stroke-width: 3;
+    cursor: grab;
+}
+
+.point-handle:active {
+    cursor: grabbing;
+}
+
+.point-handle.draft {
+    stroke: #ef4444;
+}
+
+.map-hint {
+    margin-top: 8px;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------- sidebar */
+
+.map-sidebar {
+    flex: 0 1 300px;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.panel h2 {
+    margin: 0;
+}
+
+.panel input[type="text"] {
+    width: 100%;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.polygon-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.polygon-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.polygon-list li.selected {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+.polygon-list input {
+    flex: 1;
+    min-width: 0;
+}
+
+.swatch {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+}
+
+.empty {
+    font-size: 14px;
+}
+
+.export-button {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    font-weight: 600;
+}
+
+.message {
+    font-size: 14px;
+}
+
+.message.error {
+    color: #dc2626;
+}
+
+.message.success {
+    color: #16a34a;
+}
