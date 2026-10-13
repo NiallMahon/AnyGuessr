@@ -1,7 +1,19 @@
 import { useState } from "react";
+import { recordGameStart, recordRegionClick } from "../../services/statsAPI";
+
+const DEMO_USER_ID = 1;
+const DEMO_MAP_ID = 1;
+const TARGET_REGION_ID = 1;
 
 function WorldMap() {
   const [selected, setSelected] = useState<string | null>(null);
+  const [gameId, setGameId] = useState<number | null>(null);
+
+  async function guess(regionId: number) {
+    const id = gameId ?? await recordGameStart(DEMO_USER_ID, DEMO_MAP_ID);
+    setGameId(id);
+    await recordRegionClick(id, { targetRegionId: TARGET_REGION_ID, selectedRegionId: regionId, lat: 0, lng: 0 });
+  }
 
   return (
     <div>
@@ -21,7 +33,7 @@ function WorldMap() {
           fill="lightblue"
           stroke="black"
           strokeWidth="2"
-          onClick={() => setSelected("Country A")}
+          onClick={() => { setSelected("Country A"); guess(1); }}
           style={{ cursor: "pointer" }}
         />
 
@@ -31,7 +43,7 @@ function WorldMap() {
           fill="lightgreen"
           stroke="black"
           strokeWidth="2"
-          onClick={() => setSelected("Country B")}
+          onClick={() => { setSelected("Country B"); guess(2); }}
           style={{ cursor: "pointer" }}
         />
       </svg>
