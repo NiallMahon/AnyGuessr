@@ -16,11 +16,17 @@ function Profile() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
+    const userId = sessionStorage.getItem("userId");
     useEffect(() => {
         async function fetchProfile() {
+            if(!userId) {
+                setError("User not logged in");
+                setLoading(false);
+                return;
+            }
+
             try {
-                const response = await fetch('http://localhost:8080/profile/1');
+                const response = await fetch(`http://localhost:8080/profile/${userId}`);
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch profile');
@@ -28,14 +34,16 @@ function Profile() {
                 const data = await response.json();
                 setProfile(data);
             } catch (err) {
-                setError("Failed to load profile");
+                setError(
+                    err instanceof Error ? err.message : 'Failed to fetch profile'
+                );
             } finally {
                 setLoading(false);
             }
         }
 
         fetchProfile();
-    }, []);
+    },[userId]);
 
     if (loading) {
         return <div>Loading...</div>;

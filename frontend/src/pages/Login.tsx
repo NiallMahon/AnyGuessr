@@ -1,18 +1,52 @@
 import { useState, type SubmitEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate} from "react-router-dom";
 import "./Login.css";
 
 function Login() {
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
+    const navigate = useNavigate();
     const [error, setError] = useState("");
 
     const handleSubmit = async (
         event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError("");
+        
+         try {
+        const response = await fetch(
+        "http://localhost:8080/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identifier,
+          password,
+        }),
+      }
+    );
 
-        console.log({identifier, password});
+    if (!response.ok) {
+      throw new Error("Invalid email or password");
+    }
+
+    const data: { userId: number } =
+      await response.json();
+
+    sessionStorage.setItem(
+      "userId",
+      String(data.userId.toString())
+    );
+    navigate("/profile");
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Login failed"
+    );
+        }
     };
 
 
@@ -26,7 +60,7 @@ function Login() {
                 id="identifier" 
                 name="identifier"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
+                onChange={(event) => setIdentifier(event.target.value)}
                 autoComplete="username"
                 required />
 
@@ -37,7 +71,7 @@ function Login() {
                 id="password"
                 name="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 required />
 
                 {error && <p className="login-error">{error}</p>}

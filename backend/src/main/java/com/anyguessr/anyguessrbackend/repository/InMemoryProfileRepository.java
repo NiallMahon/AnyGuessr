@@ -13,7 +13,13 @@ public class InMemoryProfileRepository implements ProfileRepository {
 
     // Initialize the repository with a sample profile, in this case from the in memory storage, but in the real application, this would be replaced with the actual database initialization logic.
     public InMemoryProfileRepository(){
-        profiles.put(1L, new Profile(1L, "Cillian Shine", "Galway, Ireland", "CS", 67));
+        save(new Profile(
+                1L,
+                "CillianShine",
+                "Galway, Ireland",
+                "CS",
+                10
+        ));
     }
     // Retrieves a user profile by their ID from the in-memory storage, returning an Optional that may or may not contain a Profile object.
     @Override 
