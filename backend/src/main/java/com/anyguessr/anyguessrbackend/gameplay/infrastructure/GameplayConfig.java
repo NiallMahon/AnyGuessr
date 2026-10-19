@@ -12,8 +12,14 @@ import org.springframework.context.annotation.Configuration;
 public class GameplayConfig {
 
     @Bean
-    public QuizSessionRepository quizSessionRepository() {
-        return new InMemoryQuizSessionRepository();
+    public QuizSessionRepository quizSessionRepository(
+            SpringDataQuizSessionRepository sessionRepository,
+            SpringDataQuizSessionTargetRepository targetRepository
+    ) {
+        return new JpaQuizSessionRepository(
+                sessionRepository,
+                targetRepository
+        );
     }
 
     @Bean
