@@ -23,8 +23,12 @@ public class GameplayConfig {
     }
 
     @Bean
-    public QuizMapRepository quizMapRepository() {
-        return new InMemoryQuizMapRepository();
+    public QuizMapRepository quizMapRepository(
+            SpringDataRegionRepository regionRepository
+    ) {
+        return new JpaQuizMapRepository(
+                regionRepository
+        );
     }
 
     @Bean
