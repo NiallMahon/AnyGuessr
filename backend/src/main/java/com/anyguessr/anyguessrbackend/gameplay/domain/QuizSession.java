@@ -24,20 +24,26 @@ public class QuizSession {
      * Normal constructor used by the application.
      * Targets are placed into a random order.
      */
-public QuizSession(
-    QuizSessionId sessionId,
-    MapId mapId,
-    List<RegionId> targetRegionIds
-) {
-    this(sessionId, mapId, targetRegionIds, new Random());
-}
+    public QuizSession(
+            QuizSessionId sessionId,
+            MapId mapId,
+            List<RegionId> targetRegionIds
+    ) {
+        this(
+                sessionId,
+                mapId,
+                targetRegionIds,
+                new Random()
+        );
+    }
+
     /*
      * Constructor used by tests so that a fixed Random seed
      * can make the target order reproducible.
      */
     QuizSession(
             QuizSessionId sessionId,
-       	    MapId mapId,
+            MapId mapId,
             List<RegionId> targetRegionIds,
             Random random
     ) {
@@ -46,11 +52,12 @@ public QuizSession(
                     "Quiz session ID must not be null"
             );
         }
-	if (mapId == null) {
-    throw new IllegalArgumentException(
-            "Map ID must not be null"
-    );
-}
+
+        if (mapId == null) {
+            throw new IllegalArgumentException(
+                    "Map ID must not be null"
+            );
+        }
 
         if (targetRegionIds == null || targetRegionIds.isEmpty()) {
             throw new IllegalArgumentException(
@@ -65,45 +72,196 @@ public QuizSession(
         }
 
         this.sessionId = sessionId;
-	this.mapId = mapId;
+        this.mapId = mapId;
 
         List<RegionId> shuffledTargets =
                 new ArrayList<>(targetRegionIds);
 
-        Collections.shuffle(shuffledTargets, random);
+        Collections.shuffle(
+                shuffledTargets,
+                random
+        );
 
-        this.targetRegionIds = List.copyOf(shuffledTargets);
-        this.completedRegionIds = new HashSet<>();
+        this.targetRegionIds =
+                List.copyOf(shuffledTargets);
 
-        this.currentTarget = this.targetRegionIds.get(0);
+        this.completedRegionIds =
+                new HashSet<>();
+
+        this.currentTarget =
+                this.targetRegionIds.get(0);
+
         this.correctAnswers = 0;
         this.answeredTargets = 0;
         this.correctionRequired = false;
         this.status = QuizStatus.IN_PROGRESS;
     }
-public QuizSessionId getSessionId() {
-    return sessionId;
-}
 
-	public MapId getMapId() {
-    return mapId;
-}
+    /*
+     * Private constructor used when restoring an existing
+     * quiz session from persisted state.
+     *
+     * Unlike the normal constructor, this does not shuffle
+     * targets or reset progress.
+     */
+    private QuizSession(
+            QuizSessionId sessionId,
+            MapId mapId,
+            List<RegionId> targetRegionIds,
+            Set<RegionId> completedRegionIds,
+            RegionId currentTarget,
+            int correctAnswers,
+            int answeredTargets,
+            boolean correctionRequired,
+            QuizStatus status
+    ) {
+        if (sessionId == null) {
+            throw new IllegalArgumentException(
+                    "Quiz session ID must not be null"
+            );
+        }
+
+        if (mapId == null) {
+            throw new IllegalArgumentException(
+                    "Map ID must not be null"
+            );
+        }
+
+        if (targetRegionIds == null || targetRegionIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Quiz must contain at least one target region"
+            );
+        }
+
+        if (completedRegionIds == null) {
+            throw new IllegalArgumentException(
+                    "Completed regions must not be null"
+            );
+        }
+
+        if (currentTarget == null) {
+            throw new IllegalArgumentException(
+                    "Current target must not be null"
+            );
+        }
+
+        if (!targetRegionIds.contains(currentTarget)) {
+            throw new IllegalArgumentException(
+                    "Current target must belong to this quiz"
+            );
+        }
+
+        if (!targetRegionIds.containsAll(completedRegionIds)) {
+            throw new IllegalArgumentException(
+                    "Completed regions must belong to this quiz"
+            );
+        }
+
+        if (correctAnswers < 0 || answeredTargets < 0) {
+            throw new IllegalArgumentException(
+                    "Quiz scores must not be negative"
+            );
+        }
+
+        if (correctAnswers > answeredTargets) {
+            throw new IllegalArgumentException(
+                    "Correct answers cannot exceed answered targets"
+            );
+        }
+
+        if (status == null) {
+            throw new IllegalArgumentException(
+                    "Quiz status must not be null"
+            );
+        }
+
+        this.sessionId = sessionId;
+        this.mapId = mapId;
+
+        this.targetRegionIds =
+                List.copyOf(targetRegionIds);
+
+        this.completedRegionIds =
+                new HashSet<>(completedRegionIds);
+
+        this.currentTarget = currentTarget;
+        this.correctAnswers = correctAnswers;
+        this.answeredTargets = answeredTargets;
+        this.correctionRequired = correctionRequired;
+        this.status = status;
+    }
+
+    public QuizSessionId getSessionId() {
+        return sessionId;
+    }
+
+    public MapId getMapId() {
+        return mapId;
+    }
+
     public RegionId getCurrentTarget() {
         return currentTarget;
     }
 
-    public GuessResult submitGuess(RegionId selectedRegionId) {
+    /*
+     * Captures the complete state required to persist
+     * and later reconstruct this quiz session.
+     */
+    public QuizSessionSnapshot snapshot() {
+        return new QuizSessionSnapshot(
+                sessionId,
+                mapId,
+                targetRegionIds,
+                completedRegionIds,
+                currentTarget,
+                correctAnswers,
+                answeredTargets,
+                correctionRequired,
+                status
+        );
+    }
+
+    /*
+     * Reconstructs an existing session without reshuffling
+     * targets or resetting gameplay progress.
+     */
+    public static QuizSession restore(
+            QuizSessionSnapshot snapshot
+    ) {
+        if (snapshot == null) {
+            throw new IllegalArgumentException(
+                    "Quiz session snapshot must not be null"
+            );
+        }
+
+        return new QuizSession(
+                snapshot.sessionId(),
+                snapshot.mapId(),
+                snapshot.targetRegionIds(),
+                snapshot.completedRegionIds(),
+                snapshot.currentTarget(),
+                snapshot.correctAnswers(),
+                snapshot.answeredTargets(),
+                snapshot.correctionRequired(),
+                snapshot.status()
+        );
+    }
+
+    public GuessResult submitGuess(
+            RegionId selectedRegionId
+    ) {
 
         if (selectedRegionId == null) {
             throw new IllegalArgumentException(
                     "Selected region must not be null"
             );
         }
-	if (!targetRegionIds.contains(selectedRegionId)) {
-    throw new IllegalArgumentException(
-            "Selected region does not belong to this quiz"
-    );
-}
+
+        if (!targetRegionIds.contains(selectedRegionId)) {
+            throw new IllegalArgumentException(
+                    "Selected region does not belong to this quiz"
+            );
+        }
 
         if (status == QuizStatus.COMPLETE) {
             throw new IllegalStateException(
@@ -111,7 +269,8 @@ public QuizSessionId getSessionId() {
             );
         }
 
-        RegionId targetForThisGuess = currentTarget;
+        RegionId targetForThisGuess =
+                currentTarget;
 
         /*
          * The player's first scored attempt was already wrong.
@@ -122,16 +281,26 @@ public QuizSessionId getSessionId() {
         if (correctionRequired) {
 
             boolean selectedCorrectTarget =
-                    selectedRegionId.equals(currentTarget);
+                    selectedRegionId.equals(
+                            currentTarget
+                    );
 
             if (selectedCorrectTarget) {
 
-                completedRegionIds.add(currentTarget);
+                completedRegionIds.add(
+                        currentTarget
+                );
+
                 correctionRequired = false;
 
-                if (completedRegionIds.size() == targetRegionIds.size()) {
-                    status = QuizStatus.COMPLETE;
+                if (completedRegionIds.size()
+                        == targetRegionIds.size()) {
+
+                    status =
+                            QuizStatus.COMPLETE;
+
                 } else {
+
                     moveToNextTarget();
                 }
             }
@@ -150,16 +319,26 @@ public QuizSessionId getSessionId() {
         answeredTargets++;
 
         boolean correct =
-                selectedRegionId.equals(currentTarget);
+                selectedRegionId.equals(
+                        currentTarget
+                );
 
         if (correct) {
 
             correctAnswers++;
-            completedRegionIds.add(currentTarget);
 
-            if (completedRegionIds.size() == targetRegionIds.size()) {
-                status = QuizStatus.COMPLETE;
+            completedRegionIds.add(
+                    currentTarget
+            );
+
+            if (completedRegionIds.size()
+                    == targetRegionIds.size()) {
+
+                status =
+                        QuizStatus.COMPLETE;
+
             } else {
+
                 moveToNextTarget();
             }
 
@@ -189,7 +368,9 @@ public QuizSessionId getSessionId() {
 
         for (RegionId regionId : targetRegionIds) {
 
-            if (!completedRegionIds.contains(regionId)) {
+            if (!completedRegionIds.contains(
+                    regionId
+            )) {
                 currentTarget = regionId;
                 return;
             }
@@ -202,9 +383,11 @@ public QuizSessionId getSessionId() {
             RegionId targetRegionId
     ) {
 
-        double accuracy = answeredTargets == 0
-                ? 0.0
-                : (correctAnswers * 100.0) / answeredTargets;
+        double accuracy =
+                answeredTargets == 0
+                        ? 0.0
+                        : (correctAnswers * 100.0)
+                        / answeredTargets;
 
         return new GuessResult(
                 correct,
