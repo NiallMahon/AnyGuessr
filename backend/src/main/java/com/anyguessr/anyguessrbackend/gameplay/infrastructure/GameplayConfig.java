@@ -1,6 +1,8 @@
 package com.anyguessr.anyguessrbackend.gameplay.infrastructure;
 
+import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.application.SubmitGuessUseCase;
+import com.anyguessr.anyguessrbackend.gameplay.domain.QuizMapRepository;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionRepository;
 
 import org.springframework.context.annotation.Bean;
@@ -12,6 +14,22 @@ public class GameplayConfig {
     @Bean
     public QuizSessionRepository quizSessionRepository() {
         return new InMemoryQuizSessionRepository();
+    }
+
+    @Bean
+    public QuizMapRepository quizMapRepository() {
+        return new InMemoryQuizMapRepository();
+    }
+
+    @Bean
+    public StartQuizUseCase startQuizUseCase(
+            QuizSessionRepository quizSessionRepository,
+            QuizMapRepository quizMapRepository
+    ) {
+        return new StartQuizUseCase(
+                quizSessionRepository,
+                quizMapRepository
+        );
     }
 
     @Bean
