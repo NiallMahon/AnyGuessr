@@ -1,6 +1,4 @@
-package com.anyguessr.anyguessrbackend.repository;
-
-import com.anyguessr.anyguessrbackend.model.User;
+package com.anyguessr.anyguessrbackend.identity.domain;
 
 import java.util.Optional;
 

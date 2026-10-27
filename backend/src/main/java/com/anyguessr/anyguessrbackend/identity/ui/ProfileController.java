@@ -1,7 +1,8 @@
-package com.anyguessr.anyguessrbackend.controller;
+package com.anyguessr.anyguessrbackend.identity.ui;
 
-import com.anyguessr.anyguessrbackend.dto.UserProfileResponse;
-import com.anyguessr.anyguessrbackend.service.ProfileService;
+import com.anyguessr.anyguessrbackend.identity.application.ProfileService;
+import com.anyguessr.anyguessrbackend.identity.application.UserProfileResponse;
+
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

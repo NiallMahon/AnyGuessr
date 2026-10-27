@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.model;
+package com.anyguessr.anyguessrbackend.identity.domain;
 
 public record User(
     Long id,

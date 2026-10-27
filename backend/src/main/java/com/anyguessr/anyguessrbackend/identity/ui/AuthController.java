@@ -1,9 +1,10 @@
-package com.anyguessr.anyguessrbackend.controller;
+package com.anyguessr.anyguessrbackend.identity.ui;
 
-import com.anyguessr.anyguessrbackend.dto.AuthResponse;
-import com.anyguessr.anyguessrbackend.dto.LoginRequest;
-import com.anyguessr.anyguessrbackend.dto.RegisterRequest;
-import com.anyguessr.anyguessrbackend.service.AuthService;
+import com.anyguessr.anyguessrbackend.identity.application.AuthResponse;
+import com.anyguessr.anyguessrbackend.identity.application.AuthService;
+import com.anyguessr.anyguessrbackend.identity.application.LoginRequest;
+import com.anyguessr.anyguessrbackend.identity.application.RegisterRequest;
+
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,7 +35,7 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(
             @RequestBody LoginRequest request
-    ) {
+    )   {
         return authService.login(request);
     }
 }

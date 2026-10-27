@@ -1,7 +1,9 @@
-package com.anyguessr.anyguessrbackend.repository;
+package com.anyguessr.anyguessrbackend.identity.infrastructure;
 
-import com.anyguessr.anyguessrbackend.model.User;
 import org.springframework.stereotype.Repository;
+
+import com.anyguessr.anyguessrbackend.identity.domain.User;
+import com.anyguessr.anyguessrbackend.identity.domain.UserRepository;
 
 import java.util.Map;
 import java.util.Optional;
