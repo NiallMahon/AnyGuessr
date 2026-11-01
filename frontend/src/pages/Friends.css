@@ -1,0 +1,211 @@
+.friends {
+    width: 100%;
+    padding: 40px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.friends-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: var(--bg);
+}
+
+.friends-add-form {
+    display: flex;
+    gap: 12px;
+}
+
+.friends-input,
+.friends-search-input {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--text);
+    outline: none;
+}
+
+.friends-search-container {
+    margin-bottom: 20px;
+}
+
+.friends-search-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.friends-stats {
+    display: flex;
+    width: 100%;
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: var(--bg);
+}
+
+.friends-stats div {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text);
+}
+
+.friends-layout {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 24px;
+    width: 100%;
+}
+
+.friends-main-content,
+.friends-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.friends-list-section {
+    width: 100%;
+    min-height: 300px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: var(--bg);
+}
+
+.friends-list-section h2 {
+    margin: 0 0 20px;
+}
+
+.friends-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.friend-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.friend-card:hover {
+    background-color: var(--border);
+}
+
+.friends-card-avatar {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background-color: var(--border);
+    color: var(--text);
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.friend-card-info {
+    flex: 1;
+}
+
+.friend-card-info h3 {
+    margin: 0 0 4px;
+    color: var(--text);
+}
+
+.friend-card-info p {
+    margin: 0 0 4px;
+    font-size: 0.85rem;
+    color: var(--text);
+    opacity: 0.8;
+}
+
+.friend-status {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
+.friend-card-actions {
+    display: flex;
+    align-items: center;
+}
+
+.friend-delete-btn {
+    padding: 8px 12px;
+    border: 1px solid #e53e3e;
+    border-radius: 4px;
+    background-color: transparent;
+    color: #e53e3e;
+    cursor: pointer;
+}
+
+.friend-delete-btn:hover {
+    background-color: #e53e3e;
+    color: white;
+}
+
+.friends-profile-preview,
+.friends-requests {
+    width: 100%;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background-color: var(--bg);
+    box-sizing: border-box;
+}
+
+.friends-profile-preview h2,
+.friends-requests h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.preview-avatar {
+    width: 70px;
+    height: 70px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background-color: var(--border);
+    color: var(--text);
+    font-size: 1.4rem;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.preview-details h3 {
+    margin: 0 0 8px;
+}
+
+.preview-details p {
+    margin: 4px 0;
+    font-size: 0.9rem;
+}
+
+.preview-placeholder,
+.requests-placeholder,
+.no-friends-msg {
+    color: var(--text);
+    opacity: 0.7;
+    font-size: 0.9rem;
+    margin: 0;
+}
