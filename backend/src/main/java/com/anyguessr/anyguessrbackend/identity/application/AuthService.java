@@ -1,12 +1,10 @@
-package com.anyguessr.anyguessrbackend.service;
+package com.anyguessr.anyguessrbackend.identity.application;
 
-import com.anyguessr.anyguessrbackend.dto.AuthResponse;
-import com.anyguessr.anyguessrbackend.dto.LoginRequest;
-import com.anyguessr.anyguessrbackend.dto.RegisterRequest;
-import com.anyguessr.anyguessrbackend.model.Profile;
-import com.anyguessr.anyguessrbackend.model.User;
-import com.anyguessr.anyguessrbackend.repository.ProfileRepository;
-import com.anyguessr.anyguessrbackend.repository.UserRepository;
+import com.anyguessr.anyguessrbackend.identity.domain.Profile;
+import com.anyguessr.anyguessrbackend.identity.domain.ProfileRepository;
+import com.anyguessr.anyguessrbackend.identity.domain.User;
+import com.anyguessr.anyguessrbackend.identity.domain.UserRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;

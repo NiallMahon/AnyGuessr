@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.model;
+package com.anyguessr.anyguessrbackend.identity.domain;
 // Model class representing a user profile
 public record Profile(
     Long id,

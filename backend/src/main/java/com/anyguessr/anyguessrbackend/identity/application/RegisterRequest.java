@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.dto;
+package com.anyguessr.anyguessrbackend.identity.application;
 
 public record RegisterRequest(
     String username,

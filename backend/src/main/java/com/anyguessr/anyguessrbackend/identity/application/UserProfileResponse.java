@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.dto;
+package com.anyguessr.anyguessrbackend.identity.application;
 // DTO (Data Transfer Object) for user profile response
 public record UserProfileResponse(
         Long id,
