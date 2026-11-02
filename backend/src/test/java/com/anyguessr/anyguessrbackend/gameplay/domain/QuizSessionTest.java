@@ -236,4 +236,116 @@ class QuizSessionTest {
                 () -> session.submitGuess(target)
         );
     }
+@Test
+void restoredSessionPreservesProgressAndCorrectionState() {
+
+    RegionId france = new RegionId("FR");
+    RegionId germany = new RegionId("DE");
+    RegionId spain = new RegionId("ES");
+
+    List<RegionId> regions = List.of(
+            france,
+            germany,
+            spain
+    );
+
+    QuizSession original = new QuizSession(
+            new QuizSessionId("quiz-restore"),
+            new MapId("world-map"),
+            regions,
+            new Random(123)
+    );
+
+    /*
+     * Complete the first target correctly.
+     */
+    RegionId firstTarget =
+            original.getCurrentTarget();
+
+    original.submitGuess(firstTarget);
+
+    /*
+     * Make a wrong first attempt on the second target.
+     * This puts the session into correction mode.
+     */
+    RegionId secondTarget =
+            original.getCurrentTarget();
+
+    RegionId wrongRegion = regions.stream()
+            .filter(region ->
+                    !region.equals(secondTarget))
+            .findFirst()
+            .orElseThrow();
+
+    original.submitGuess(wrongRegion);
+
+    /*
+     * Simulate saving and reloading the domain state.
+     */
+    QuizSessionSnapshot snapshot =
+            original.snapshot();
+
+    QuizSession restored =
+            QuizSession.restore(snapshot);
+
+    assertEquals(
+            original.getSessionId(),
+            restored.getSessionId()
+    );
+
+    assertEquals(
+            original.getMapId(),
+            restored.getMapId()
+    );
+
+    assertEquals(
+            secondTarget,
+            restored.getCurrentTarget()
+    );
+
+    /*
+     * Because correctionRequired must survive restoration,
+     * clicking the correct region must NOT count as another
+     * scored attempt.
+     */
+    GuessResult correction =
+            restored.submitGuess(secondTarget);
+
+    assertTrue(correction.correct());
+    assertFalse(correction.correctionRequired());
+
+    assertEquals(
+            1,
+            correction.correctAnswers()
+    );
+
+    assertEquals(
+            2,
+            correction.answeredTargets()
+    );
+
+    assertEquals(
+            50.0,
+            correction.accuracy()
+    );
+
+    assertFalse(
+            correction.quizComplete()
+    );
+
+    /*
+     * Both completed targets must remain completed,
+     * so the restored session must now move to the
+     * remaining third target.
+     */
+    assertNotEquals(
+            firstTarget,
+            restored.getCurrentTarget()
+    );
+
+    assertNotEquals(
+            secondTarget,
+            restored.getCurrentTarget()
+    );
+}
 }
