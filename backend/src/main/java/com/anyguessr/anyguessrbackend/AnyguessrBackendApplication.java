@@ -9,5 +9,5 @@ public class AnyguessrBackendApplication {
     public static void main(String[] args) {
         SpringApplication.run(AnyguessrBackendApplication.class, args);
     }
-
+    
 }

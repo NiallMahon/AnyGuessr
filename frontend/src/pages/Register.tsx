@@ -1,6 +1,11 @@
 import "./Register.css";
 import { useState, type SubmitEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+type RegisterResponse = {
+    token: string;
+    userId: number;
+};
 
 function Register() {
     const [username, setUsername] = useState("");
@@ -8,13 +13,52 @@ function Register() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [location, setLocation] = useState("");
+    const navigate = useNavigate();
 
     const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError("");
 
-        console.log({ username, email, password, confirmPassword });
-    };
+    if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+    }
+
+    try {
+        const response = await fetch(
+        "http://localhost:8080/auth/register",
+        {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+            username,
+            email,
+            password,
+            location,
+            }),
+        }
+        );
+
+            if (!response.ok) {
+            throw new Error("Failed to register");
+            }
+
+    const data: RegisterResponse = await response.json();
+
+    sessionStorage.setItem("userId", data.userId.toString());
+
+    navigate("/profile");
+  } catch (err) {
+    setError("Failed to register. Please try again.");
+
+    if (err instanceof Error) {
+      console.error(err.message);
+    }
+  }
+};
 
     return (
         <main className="register">
@@ -58,6 +102,15 @@ function Register() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                />
+                <label htmlFor="location">Location:</label>
+                <input
+                type="text"
+                id="location"
+                name="location"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                required
                 />
 
                 {error && <p className="register-error">{error}</p>}
