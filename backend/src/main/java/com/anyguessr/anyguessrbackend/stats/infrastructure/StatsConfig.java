@@ -31,7 +31,6 @@ public class StatsConfig {
         return new StatsService(gameRecordRepository, statsClock);
     }
 
-    // Gameplay picks this up and announces every quiz to it.
     @Bean
     public QuizEventListener gameplayStatsListener(StatsService statsService) {
         return new GameplayStatsListener(statsService);

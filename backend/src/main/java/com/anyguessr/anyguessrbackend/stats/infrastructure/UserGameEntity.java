@@ -31,7 +31,6 @@ public class UserGameEntity {
     @Column(name = "map_id", nullable = false)
     private long mapId;
 
-    // Times are saved as plain timestamps, the same way the old JdbcTemplate code saved them.
     @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;

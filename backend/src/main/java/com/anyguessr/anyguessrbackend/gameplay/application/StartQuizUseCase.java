@@ -32,9 +32,6 @@ public class StartQuizUseCase {
         this.quizEventListener = quizEventListener;
     }
 
-    /*
-     * userId is null when the player is not logged in.
-     */
     public StartQuizResult execute(
             MapId mapId,
             Long userId

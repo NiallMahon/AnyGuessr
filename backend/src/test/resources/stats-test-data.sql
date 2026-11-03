@@ -1,5 +1,4 @@
--- Test data: one player and one map.
--- Old rows are cleared first, so every test starts from the same data.
+-- Test data: one player and one map, after clearing old rows.
 
 DELETE FROM guesses;
 DELETE FROM user_games;

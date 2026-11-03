@@ -57,11 +57,6 @@ public class GameplayConfig {
         );
     }
 
-    /*
-     * Uses the one QuizEventListener bean another feature provides,
-     * or a listener that does nothing if there is none.
-     * Failures in the listener are logged instead of breaking the quiz.
-     */
     private QuizEventListener safe(
             ObjectProvider<QuizEventListener> quizEventListener
     ) {

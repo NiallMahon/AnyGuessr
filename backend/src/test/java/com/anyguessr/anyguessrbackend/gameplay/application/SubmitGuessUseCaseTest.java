@@ -76,54 +76,26 @@ class SubmitGuessUseCaseTest {
 
     @Test
     void finishedQuizAnnouncesTheServersScore() {
-        QuizSessionId sessionId =
-                new QuizSessionId("quiz-1");
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
+        QuizSession session = new QuizSession(new QuizSessionId("quiz-1"), new MapId("world-map"), List.of(france, germany));
+        RegionId first = session.getCurrentTarget();
+        RegionId second = first.equals(france) ? germany : france;
 
-        RegionId france =
-                new RegionId("FR");
-
-        RegionId germany =
-                new RegionId("DE");
-
-        QuizSession session = new QuizSession(
-                sessionId,
-                new MapId("world-map"),
-                List.of(france, germany)
-        );
-
-        RegionId first =
-                session.getCurrentTarget();
-
-        RegionId second =
-                first.equals(france) ? germany : france;
-
-        InMemoryQuizSessionRepository repository =
-                new InMemoryQuizSessionRepository();
-
+        InMemoryQuizSessionRepository repository = new InMemoryQuizSessionRepository();
         repository.save(session);
 
-        List<String> finished =
-                new ArrayList<>();
+        List<String> finished = new ArrayList<>();
+        SubmitGuessUseCase useCase = new SubmitGuessUseCase(repository, new QuizEventListener() {
+            @Override
+            public void quizFinished(QuizSessionId id, int correctAnswers, int answeredTargets) {
+                finished.add(correctAnswers + "/" + answeredTargets);
+            }
+        });
 
-        SubmitGuessUseCase useCase =
-                new SubmitGuessUseCase(
-                        repository,
-                        new QuizEventListener() {
-                            @Override
-                            public void quizFinished(
-                                    QuizSessionId id,
-                                    int correctAnswers,
-                                    int answeredTargets
-                            ) {
-                                finished.add(correctAnswers + "/" + answeredTargets);
-                            }
-                        }
-                );
-
-        /* Wrong first attempt, a correction click, then right. */
-        useCase.execute(sessionId, second);
-        useCase.execute(sessionId, first);
-        useCase.execute(sessionId, second);
+        useCase.execute(session.getSessionId(), second);
+        useCase.execute(session.getSessionId(), first);
+        useCase.execute(session.getSessionId(), second);
 
         assertEquals(List.of("1/2"), finished);
     }
