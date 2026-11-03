@@ -35,13 +35,19 @@ class GameplayStatsListenerTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private SpringDataUserGameRepository userGameRepository;
+
+    @Autowired
+    private SpringDataGuessRepository guessRepository;
+
     private StatsService statsService;
     private GameplayStatsListener listener;
 
     @BeforeEach
     void setUp() {
         statsService = new StatsService(
-                new JdbcGameRecordRepository(jdbcTemplate),
+                new JpaGameRecordRepository(userGameRepository, guessRepository),
                 Clock.fixed(Instant.parse("2026-11-02T10:00:00Z"), ZoneOffset.UTC));
         listener = new GameplayStatsListener(statsService);
     }

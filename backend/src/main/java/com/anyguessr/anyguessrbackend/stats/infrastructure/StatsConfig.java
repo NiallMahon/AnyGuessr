@@ -7,7 +7,6 @@ import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Clock;
 
@@ -20,8 +19,11 @@ public class StatsConfig {
     }
 
     @Bean
-    public GameRecordRepository gameRecordRepository(JdbcTemplate jdbcTemplate) {
-        return new JdbcGameRecordRepository(jdbcTemplate);
+    public GameRecordRepository gameRecordRepository(
+            SpringDataUserGameRepository userGameRepository,
+            SpringDataGuessRepository guessRepository
+    ) {
+        return new JpaGameRecordRepository(userGameRepository, guessRepository);
     }
 
     @Bean
