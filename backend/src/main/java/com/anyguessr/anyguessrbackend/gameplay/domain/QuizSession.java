@@ -394,6 +394,7 @@ public class QuizSession {
                 correctionRequired,
                 selectedRegionId,
                 targetRegionId,
+                currentTarget,
                 correctAnswers,
                 answeredTargets,
                 accuracy,

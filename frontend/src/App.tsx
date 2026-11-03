@@ -5,6 +5,7 @@ import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Register from "./pages/Register";
 import Friends from "./pages/Friends";
+import Quiz from "./pages/Quiz";
 import './App.css'
 import WorldMap from "./components/Map/WorldMap";
 import MapSelector from "./pages/MapSelector";
@@ -13,16 +14,23 @@ import MapMaker from './pages/MapMaker';
 
 function App() {
   return(
- <>
+    <>
       <Navbar />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/friends" element={<Friends />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path='/mapmaker' element={<MapMaker />} />
-        <Route path='/mapselector' element={<MapSelector />} />
+        <Route path="/mapmaker" element={<MapMaker />} />
+        <Route path="/mapselector" element={<MapSelector />} />
+
+        <Route
+          path="/quiz"
+          element={<Quiz />}
+        />
+
         <Route
           path="/map"
           element={
