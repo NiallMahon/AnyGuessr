@@ -1,0 +1,17 @@
+[33m81cb8e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfriends-page-for-real[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/friends-page-for-real[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: checkout: moving from friends-page to friends-page-for-real
+[33mb96bd32[m[33m ([m[1;32mfriends-page[m[33m)[m HEAD@{1}: commit: Implement friends backend API and connect React frontend
+[33m81cb8e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfriends-page-for-real[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/friends-page-for-real[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{2}: checkout: moving from friends-page to friends-page
+[33m81cb8e7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfriends-page-for-real[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/friends-page-for-real[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{3}: reset: moving to origin/main
+[33ma6cb0e8[m[33m ([m[1;31morigin/friends-page[m[33m, [m[1;32mmain[m[33m)[m HEAD@{4}: checkout: moving from main to friends-page
+[33ma6cb0e8[m[33m ([m[1;31morigin/friends-page[m[33m, [m[1;32mmain[m[33m)[m HEAD@{5}: pull origin main: Fast-forward
+[33m698a131[m HEAD@{6}: checkout: moving from spring-setup to main
+[33m7dbd5fc[m[33m ([m[1;31morigin/spring-setup[m[33m, [m[1;32mspring-setup[m[33m)[m HEAD@{7}: commit: fixed JDK conflict, added working get request for profile page
+[33m51b13d3[m HEAD@{8}: pull origin spring-setup: Fast-forward
+[33m0f94fcb[m HEAD@{9}: checkout: moving from spring-setup to spring-setup
+[33m0f94fcb[m HEAD@{10}: commit: added instructions for backend in read me
+[33m276f20b[m HEAD@{11}: commit: Fix backend folder submodule/arrow error
+[33m19104cb[m HEAD@{12}: merge origin/main: Merge made by the 'ort' strategy.
+[33m3cb82e9[m HEAD@{13}: commit: Added backend folder
+[33m0720149[m HEAD@{14}: commit: file 'Components' is gone, made errors becuase of file 'components'
+[33m698a131[m HEAD@{15}: checkout: moving from main to spring-setup
+[33m698a131[m HEAD@{16}: clone: from https://github.com/NiallMahon/AnyGuessr

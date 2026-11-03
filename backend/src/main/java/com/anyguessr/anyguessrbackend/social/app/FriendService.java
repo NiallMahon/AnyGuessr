@@ -1,5 +1,6 @@
-package com.anyguessr.anyguessrbackend.identity.social;
+package com.anyguessr.anyguessrbackend.social.app;
 
+import com.anyguessr.anyguessrbackend.social.domain.Friend;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
