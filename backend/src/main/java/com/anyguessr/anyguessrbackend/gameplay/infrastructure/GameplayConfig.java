@@ -1,10 +1,12 @@
 package com.anyguessr.anyguessrbackend.gameplay.infrastructure;
 
+import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
 import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.application.SubmitGuessUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizMapRepository;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionRepository;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -34,20 +36,39 @@ public class GameplayConfig {
     @Bean
     public StartQuizUseCase startQuizUseCase(
             QuizSessionRepository quizSessionRepository,
-            QuizMapRepository quizMapRepository
+            QuizMapRepository quizMapRepository,
+            ObjectProvider<QuizEventListener> quizEventListener
     ) {
         return new StartQuizUseCase(
                 quizSessionRepository,
-                quizMapRepository
+                quizMapRepository,
+                safe(quizEventListener)
         );
     }
 
     @Bean
     public SubmitGuessUseCase submitGuessUseCase(
-            QuizSessionRepository quizSessionRepository
+            QuizSessionRepository quizSessionRepository,
+            ObjectProvider<QuizEventListener> quizEventListener
     ) {
         return new SubmitGuessUseCase(
-                quizSessionRepository
+                quizSessionRepository,
+                safe(quizEventListener)
+        );
+    }
+
+    /*
+     * Uses the one QuizEventListener bean another feature provides,
+     * or a listener that does nothing if there is none.
+     * Failures in the listener are logged instead of breaking the quiz.
+     */
+    private QuizEventListener safe(
+            ObjectProvider<QuizEventListener> quizEventListener
+    ) {
+        return new SafeQuizEventListener(
+                quizEventListener.getIfAvailable(
+                        () -> QuizEventListener.NONE
+                )
         );
     }
 }

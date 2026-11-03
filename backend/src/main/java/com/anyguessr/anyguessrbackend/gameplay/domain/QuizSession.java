@@ -203,6 +203,10 @@ public class QuizSession {
         return currentTarget;
     }
 
+    public boolean isCorrectionRequired() {
+        return correctionRequired;
+    }
+
     /*
      * Captures the complete state required to persist
      * and later reconstruct this quiz session.

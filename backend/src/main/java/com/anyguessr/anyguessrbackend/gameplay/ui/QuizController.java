@@ -38,7 +38,8 @@ public class QuizController {
     ) {
         StartQuizResult result =
                 startQuizUseCase.execute(
-                        new MapId(request.mapId())
+                        new MapId(request.mapId()),
+                        request.userId()
                 );
 
         return StartQuizResponse.from(result);
