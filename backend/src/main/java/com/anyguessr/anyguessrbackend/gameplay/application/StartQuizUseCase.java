@@ -14,16 +14,28 @@ public class StartQuizUseCase {
 
     private final QuizSessionRepository quizSessionRepository;
     private final QuizMapRepository quizMapRepository;
+    private final QuizEventListener quizEventListener;
 
     public StartQuizUseCase(
             QuizSessionRepository quizSessionRepository,
-            QuizMapRepository quizMapRepository
+            QuizMapRepository quizMapRepository,
+            QuizEventListener quizEventListener
     ) {
+        if (quizEventListener == null) {
+            throw new IllegalArgumentException(
+                    "Quiz event listener must not be null"
+            );
+        }
+
         this.quizSessionRepository = quizSessionRepository;
         this.quizMapRepository = quizMapRepository;
+        this.quizEventListener = quizEventListener;
     }
 
-    public StartQuizResult execute(MapId mapId) {
+    public StartQuizResult execute(
+            MapId mapId,
+            Long userId
+    ) {
 
         List<RegionId> regionIds =
                 quizMapRepository.findRegionIdsByMapId(mapId);
@@ -41,6 +53,12 @@ public class StartQuizUseCase {
                 );
 
         quizSessionRepository.save(session);
+
+        quizEventListener.quizStarted(
+                sessionId,
+                userId,
+                mapId
+        );
 
         return new StartQuizResult(
                 sessionId,

@@ -34,11 +34,12 @@ class StartQuizUseCaseTest {
         StartQuizUseCase useCase =
                 new StartQuizUseCase(
                         sessionRepository,
-                        mapRepository
+                        mapRepository,
+                        QuizEventListener.NONE
                 );
 
         StartQuizResult result =
-                useCase.execute(mapId);
+                useCase.execute(mapId, null);
 
         assertNotNull(result.sessionId());
         assertEquals(mapId, result.mapId());
@@ -76,12 +77,13 @@ class StartQuizUseCaseTest {
         StartQuizUseCase useCase =
                 new StartQuizUseCase(
                         sessionRepository,
-                        mapRepository
+                        mapRepository,
+                        QuizEventListener.NONE
                 );
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> useCase.execute(mapId)
+                () -> useCase.execute(mapId, null)
         );
     }
 }

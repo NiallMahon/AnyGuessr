@@ -1,6 +1,7 @@
 import "./Profile.css";
 import {useEffect, useState} from "react";
-import {fetchUserStats, type UserStats} from "../services/userStatsAPI";
+import {fetchUserStats, type UserStats} from "../services/statsAPI";
+import ProfileStats from "../components/ProfileStats";
 
 type UserProfile = {
     id: number;
@@ -9,18 +10,6 @@ type UserProfile = {
     initials: string;
     gamesPlayed: number;
 };
-
-function formatPercent(percent: number) {
-    return `${Math.round(percent * 10) / 10}%`;
-}
-
-function formatTime(seconds: number | null) {
-    if (seconds === null) {
-        return "-";
-    }
-    const whole = Math.round(seconds);
-    return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
 
 //Simple profile page for the user, with a profile picture, name, location, and stats. Also would include recent games, comments, and friends
 function Profile() {
@@ -101,41 +90,14 @@ function Profile() {
                 Edit Profile
                 </button>
             </section>
-            {/* Profile stats section with trophies, high score, games played, games won, and win rate */}
-            <section className="profile-stats">
-                {stats ? (
-                    <>
-                        <div><span className="profile-stat-value">{stats.gamesPlayed}</span>Games Played</div>
-                        <div><span className="profile-stat-value">{stats.correctGuesses}</span>Correct</div>
-                        <div><span className="profile-stat-value">{stats.incorrectGuesses}</span>Incorrect</div>
-                        <div><span className="profile-stat-value">{formatPercent(stats.accuracyPercent)}</span>Accuracy</div>
-                        <div><span className="profile-stat-value">{formatTime(stats.bestTimeSeconds)}</span>Best Time</div>
-                        <div><span className="profile-stat-value">{formatTime(stats.averageTimeSeconds)}</span>Average Time</div>
-                    </>
-                ) : (
-                    <div>{statsError ?? "Loading stats..."}</div>
-                )}
-            </section>
+            {stats ? (
+                <ProfileStats stats={stats}/>
+            ) : (
+                <p className="profile-stats-status">{statsError ?? "Loading stats..."}</p>
+            )}
             {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
             <div className="profile-layout">
                 <div className="profile-main-content">
-                    <section className="profile-recent-games">
-                        <h2>Recent Games</h2>
-
-                            <div className="recent-games-list">
-                            {stats?.recentGames.map((game) => (
-                                <div className="game-card" key={game.sessionId}>
-                                    <h3>{game.mapName}</h3>
-                                    <p>{new Date(game.finishedAt).toLocaleDateString()}</p>
-                                    <p>Score: {game.correct}/{game.correct + game.incorrect}</p>
-                                    <p>Accuracy: {formatPercent(game.accuracyPercent)}</p>
-                                    <p>Time: {formatTime(game.durationSeconds)}</p>
-                                </div>
-                            ))}
-                </div>
-                {stats?.recentGames.length === 0 && <p>No games yet</p>}
-            </section>
-            
             <section className="profile-comments">
                 <h2>Comments</h2>
                 <p>CS.com: This guy is quite litterally the worst player to touch the game</p>

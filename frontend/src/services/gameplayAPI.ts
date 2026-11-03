@@ -40,10 +40,12 @@ async function post<T>(
 }
 
 export function startQuiz(
-  mapId: string
+  mapId: string,
+  userId: number | null
 ): Promise<StartQuizResponse> {
   return post<StartQuizResponse>('', {
     mapId,
+    userId,
   });
 }
 

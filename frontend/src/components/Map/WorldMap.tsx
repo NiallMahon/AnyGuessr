@@ -1,38 +1,7 @@
 import { useState } from "react";
-import { recordGuess, startGame } from "../../services/statsAPI";
-
-const DEMO_USER_ID = 1;
-const DEMO_MAP_ID = 1;
-const TARGET_REGION_ID = 1;
 
 function WorldMap() {
   const [selected, setSelected] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-
-  async function guess(regionId: number) {
-    // clicks made while the last one is still being sent are ignored, so the game
-    // is only started once and guesses reach the server in the order they were made
-    if (sending) {
-      return;
-    }
-
-    setSending(true);
-
-    try {
-      let id = sessionId;
-
-      if (!id) {
-        id = crypto.randomUUID();
-        await startGame(id, DEMO_USER_ID, DEMO_MAP_ID);
-        setSessionId(id);
-      }
-
-      await recordGuess(id, { targetRegionId: TARGET_REGION_ID, selectedRegionId: regionId, lat: 0, lng: 0 });
-    } finally {
-      setSending(false);
-    }
-  }
 
   return (
     <div>
@@ -52,7 +21,7 @@ function WorldMap() {
           fill="lightblue"
           stroke="black"
           strokeWidth="2"
-          onClick={() => { setSelected("Country A"); guess(1); }}
+          onClick={() => setSelected("Country A")}
           style={{ cursor: "pointer" }}
         />
 
@@ -62,7 +31,7 @@ function WorldMap() {
           fill="lightgreen"
           stroke="black"
           strokeWidth="2"
-          onClick={() => { setSelected("Country B"); guess(2); }}
+          onClick={() => setSelected("Country B")}
           style={{ cursor: "pointer" }}
         />
       </svg>

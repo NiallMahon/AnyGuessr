@@ -1,12 +1,12 @@
 // Creates the stats classes for Spring.
 package com.anyguessr.anyguessrbackend.stats.infrastructure;
 
+import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Clock;
 
@@ -19,8 +19,8 @@ public class StatsConfig {
     }
 
     @Bean
-    public GameRecordRepository gameRecordRepository(JdbcTemplate jdbcTemplate) {
-        return new JdbcGameRecordRepository(jdbcTemplate);
+    public GameRecordRepository gameRecordRepository(SpringDataUserGameRepository userGameRepository) {
+        return new JpaGameRecordRepository(userGameRepository);
     }
 
     @Bean
@@ -29,5 +29,10 @@ public class StatsConfig {
             Clock statsClock
     ) {
         return new StatsService(gameRecordRepository, statsClock);
+    }
+
+    @Bean
+    public QuizEventListener gameplayStatsListener(StatsService statsService) {
+        return new GameplayStatsListener(statsService);
     }
 }

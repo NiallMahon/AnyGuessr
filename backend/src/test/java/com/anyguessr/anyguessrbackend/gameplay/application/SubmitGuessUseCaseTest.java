@@ -9,6 +9,7 @@ import com.anyguessr.anyguessrbackend.gameplay.infrastructure.InMemoryQuizSessio
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,7 +36,10 @@ class SubmitGuessUseCaseTest {
         repository.save(session);
 
         SubmitGuessUseCase useCase =
-                new SubmitGuessUseCase(repository);
+                new SubmitGuessUseCase(
+                        repository,
+                        QuizEventListener.NONE
+                );
 
         GuessResult result =
                 useCase.execute(
@@ -56,7 +60,10 @@ class SubmitGuessUseCaseTest {
                 new InMemoryQuizSessionRepository();
 
         SubmitGuessUseCase useCase =
-                new SubmitGuessUseCase(repository);
+                new SubmitGuessUseCase(
+                        repository,
+                        QuizEventListener.NONE
+                );
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -65,5 +72,31 @@ class SubmitGuessUseCaseTest {
                         new RegionId("FR")
                 )
         );
+    }
+
+    @Test
+    void finishedQuizAnnouncesTheServersScore() {
+        RegionId france = new RegionId("FR");
+        RegionId germany = new RegionId("DE");
+        QuizSession session = new QuizSession(new QuizSessionId("quiz-1"), new MapId("world-map"), List.of(france, germany));
+        RegionId first = session.getCurrentTarget();
+        RegionId second = first.equals(france) ? germany : france;
+
+        InMemoryQuizSessionRepository repository = new InMemoryQuizSessionRepository();
+        repository.save(session);
+
+        List<String> finished = new ArrayList<>();
+        SubmitGuessUseCase useCase = new SubmitGuessUseCase(repository, new QuizEventListener() {
+            @Override
+            public void quizFinished(QuizSessionId id, int correctAnswers, int answeredTargets) {
+                finished.add(correctAnswers + "/" + answeredTargets);
+            }
+        });
+
+        useCase.execute(session.getSessionId(), second);
+        useCase.execute(session.getSessionId(), first);
+        useCase.execute(session.getSessionId(), second);
+
+        assertEquals(List.of("1/2"), finished);
     }
 }
