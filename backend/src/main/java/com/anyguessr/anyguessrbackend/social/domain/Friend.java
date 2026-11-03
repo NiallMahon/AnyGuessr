@@ -1,5 +1,4 @@
-package com.anyguessr.anyguessrbackend.identity.social;
-
+package com.anyguessr.anyguessrbackend.social.domain;
 import org.springframework.web.bind.annotation.*;
 
 public class Friend {

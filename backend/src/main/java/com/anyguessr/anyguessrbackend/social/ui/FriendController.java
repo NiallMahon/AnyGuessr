@@ -1,5 +1,7 @@
-package com.anyguessr.anyguessrbackend.identity.social;
+package com.anyguessr.anyguessrbackend.social.ui;
 
+import com.anyguessr.anyguessrbackend.social.domain.Friend;
+import com.anyguessr.anyguessrbackend.social.app.FriendService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
