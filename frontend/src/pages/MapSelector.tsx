@@ -51,10 +51,17 @@ function MapSelector() {
     setStartingMapId(mapId);
     setError(null);
 
+    // Set by the login and register pages.
+    const userId =
+      sessionStorage.getItem("userId");
+
     try {
       const quiz =
         await startQuiz(
-          String(mapId)
+          String(mapId),
+          userId === null
+            ? null
+            : Number(userId)
         );
 
       navigate("/quiz", {

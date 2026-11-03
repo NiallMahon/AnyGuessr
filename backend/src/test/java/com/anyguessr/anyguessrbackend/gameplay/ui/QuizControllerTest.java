@@ -1,5 +1,7 @@
 package com.anyguessr.anyguessrbackend.gameplay.ui;
 
+import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
+import com.anyguessr.anyguessrbackend.gameplay.application.RecordingQuizEventListener;
 import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.application.SubmitGuessUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
@@ -38,11 +40,15 @@ class QuizControllerTest {
         StartQuizUseCase startQuizUseCase =
                 new StartQuizUseCase(
                         repository,
-                        mapRepository
+                        mapRepository,
+                        QuizEventListener.NONE
                 );
 
         SubmitGuessUseCase submitGuessUseCase =
-                new SubmitGuessUseCase(repository);
+                new SubmitGuessUseCase(
+                        repository,
+                        QuizEventListener.NONE
+                );
 
         QuizController controller =
                 new QuizController(
@@ -51,7 +57,7 @@ class QuizControllerTest {
                 );
 
         StartQuizRequest request =
-                new StartQuizRequest("world-map");
+                new StartQuizRequest("world-map", null);
 
         StartQuizResponse response =
                 controller.startQuiz(request);
@@ -94,11 +100,15 @@ class QuizControllerTest {
         StartQuizUseCase startQuizUseCase =
                 new StartQuizUseCase(
                         repository,
-                        mapRepository
+                        mapRepository,
+                        QuizEventListener.NONE
                 );
 
         SubmitGuessUseCase submitGuessUseCase =
-                new SubmitGuessUseCase(repository);
+                new SubmitGuessUseCase(
+                        repository,
+                        QuizEventListener.NONE
+                );
 
         QuizController controller =
                 new QuizController(
@@ -138,5 +148,49 @@ class QuizControllerTest {
                 response.accuracy()
         );
         assertTrue(response.quizComplete());
+    }
+
+    @Test
+    void startQuizPassesLoggedInPlayerToListener() {
+
+        InMemoryQuizSessionRepository repository =
+                new InMemoryQuizSessionRepository();
+
+        RecordingQuizEventListener listener =
+                new RecordingQuizEventListener();
+
+        StartQuizUseCase startQuizUseCase =
+                new StartQuizUseCase(
+                        repository,
+                        requestedMapId -> List.of(
+                                new RegionId("FR")
+                        ),
+                        listener
+                );
+
+        SubmitGuessUseCase submitGuessUseCase =
+                new SubmitGuessUseCase(
+                        repository,
+                        listener
+                );
+
+        QuizController controller =
+                new QuizController(
+                        startQuizUseCase,
+                        submitGuessUseCase
+                );
+
+        StartQuizResponse response =
+                controller.startQuiz(
+                        new StartQuizRequest("1", 7L)
+                );
+
+        assertEquals(
+                List.of(
+                        "started " + response.sessionId()
+                                + " user=7 map=1"
+                ),
+                listener.events()
+        );
     }
 }
