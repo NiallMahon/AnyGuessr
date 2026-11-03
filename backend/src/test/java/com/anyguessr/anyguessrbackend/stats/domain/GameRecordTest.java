@@ -22,11 +22,11 @@ class GameRecordTest {
     @Test
     void finishWorksOutCorrectIncorrectDurationAndAccuracy() {
         GameRecord game = newGame();
-        game.recordGuess(FRANCE, FRANCE, 0, 0, START.plusSeconds(10));
-        game.recordGuess(GERMANY, null, 0, 0, START.plusSeconds(15));
-        game.recordGuess(GERMANY, FRANCE, 0, 0, START.plusSeconds(20));
-        game.recordGuess(GERMANY, GERMANY, 0, 0, START.plusSeconds(25));
-        game.recordGuess(SPAIN, SPAIN, 0, 0, START.plusSeconds(30));
+        game.recordGuess(FRANCE, FRANCE, true, null, null, START.plusSeconds(10));
+        game.recordGuess(GERMANY, null, false, null, null, START.plusSeconds(15));
+        game.recordGuess(GERMANY, FRANCE, false, null, null, START.plusSeconds(20));
+        game.recordGuess(GERMANY, GERMANY, true, null, null, START.plusSeconds(25));
+        game.recordGuess(SPAIN, SPAIN, true, null, null, START.plusSeconds(30));
 
         GameRecord.Summary summary = game.finish(START.plusSeconds(95));
 
@@ -40,8 +40,8 @@ class GameRecordTest {
     void gameRecordsNumberedGuessesThenFinishes() {
         GameRecord game = newGame();
 
-        GameRecord.Guess first = game.recordGuess(FRANCE, GERMANY, 0, 0, START.plusSeconds(5));
-        GameRecord.Guess second = game.recordGuess(FRANCE, FRANCE, 0, 0, START.plusSeconds(9));
+        GameRecord.Guess first = game.recordGuess(FRANCE, GERMANY, false, null, null, START.plusSeconds(5));
+        GameRecord.Guess second = game.recordGuess(FRANCE, FRANCE, true, null, null, START.plusSeconds(9));
         game.finish(START.plusSeconds(60));
 
         assertEquals(2, second.attemptNumber());

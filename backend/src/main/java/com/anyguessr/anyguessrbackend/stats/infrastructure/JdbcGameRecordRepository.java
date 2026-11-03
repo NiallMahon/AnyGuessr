@@ -61,7 +61,7 @@ public class JdbcGameRecordRepository implements GameRecordRepository {
         GameRow game = games.get(0);
 
         List<Guess> guesses = jdbc.query(
-                "SELECT g.attempt_number, g.target_region_id, g.selected_region_id, "
+                "SELECT g.attempt_number, g.target_region_id, g.selected_region_id, g.correct, "
                         + "g.clicked_lat, g.clicked_lng, g.guessed_at "
                         + "FROM guesses g JOIN user_games ug ON ug.game_id = g.game_id "
                         + "WHERE ug.session_id = ? ORDER BY g.attempt_number",
@@ -108,13 +108,14 @@ public class JdbcGameRecordRepository implements GameRecordRepository {
     public void addGuess(GameRecord gameRecord, Guess guess) {
         jdbc.update(
                 "INSERT INTO guesses (game_id, attempt_number, map_id, target_region_id, "
-                        + "selected_region_id, clicked_lat, clicked_lng, guessed_at) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        + "selected_region_id, correct, clicked_lat, clicked_lng, guessed_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 findGameId(gameRecord.getSessionId()),
                 guess.attemptNumber(),
                 gameRecord.getMapId().value(),
                 guess.targetRegionId().value(),
                 guess.selectedRegionId() == null ? null : guess.selectedRegionId().value(),
+                guess.correct(),
                 guess.lat(),
                 guess.lng(),
                 Timestamp.from(guess.guessedAt()));
@@ -191,8 +192,9 @@ public class JdbcGameRecordRepository implements GameRecordRepository {
                 rs.getInt("attempt_number"),
                 new RegionId(rs.getLong("target_region_id")),
                 selectedRegionId == null ? null : new RegionId(selectedRegionId),
-                rs.getDouble("clicked_lat"),
-                rs.getDouble("clicked_lng"),
+                rs.getBoolean("correct"),
+                rs.getObject("clicked_lat", Double.class),
+                rs.getObject("clicked_lng", Double.class),
                 toInstant(rs.getTimestamp("guessed_at")));
     }
 

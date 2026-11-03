@@ -35,7 +35,13 @@ public class StatsController {
 
     public record StartGameRequest(long userId, long mapId) {}
 
-    public record RecordGuessRequest(long targetRegionId, Long selectedRegionId, double lat, double lng) {}
+    public record RecordGuessRequest(
+            long targetRegionId,
+            Long selectedRegionId,
+            Boolean correct,
+            Double lat,
+            Double lng
+    ) {}
 
     public record GameSummaryResponse(int correct, int incorrect, int durationSeconds, double accuracyPercent) {
 
@@ -120,9 +126,14 @@ public class StatsController {
             @PathVariable String sessionId,
             @RequestBody RecordGuessRequest request
     ) {
+        if (request.correct() == null) {
+            throw new IllegalArgumentException("Whether the guess was correct must be given");
+        }
+
         GuessDetails details = new GuessDetails(
                 new RegionId(request.targetRegionId()),
                 request.selectedRegionId() == null ? null : new RegionId(request.selectedRegionId()),
+                request.correct(),
                 request.lat(),
                 request.lng()
         );

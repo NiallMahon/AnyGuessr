@@ -148,8 +148,9 @@ CREATE TABLE guesses (
                          map_id              bigint     NOT NULL,
                          target_region_id    bigint     NOT NULL,
                          selected_region_id  bigint     NULL,
-                         clicked_lat         double     NOT NULL,
-                         clicked_lng         double     NOT NULL,
+                         correct             boolean    NOT NULL,
+                         clicked_lat         double     NULL,
+                         clicked_lng         double     NULL,
                          guessed_at          timestamp  NOT NULL,
                          PRIMARY KEY (game_id, attempt_number),
                          CONSTRAINT fk_guesses_game FOREIGN KEY (game_id, map_id)

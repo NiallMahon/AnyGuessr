@@ -42,9 +42,9 @@ class StatsServiceTest {
                 Clock.fixed(Instant.parse("2026-11-02T10:00:00Z"), ZoneOffset.UTC));
 
         statsService.startGame(SESSION, PLAYER, new MapId(1));
-        statsService.recordGuess(SESSION, new GuessDetails(FRANCE, GERMANY, 0, 0));
-        statsService.recordGuess(SESSION, new GuessDetails(FRANCE, FRANCE, 0, 0));
-        statsService.recordGuess(SESSION, new GuessDetails(GERMANY, GERMANY, 0, 0));
+        statsService.recordGuess(SESSION, new GuessDetails(FRANCE, GERMANY, false, null, null));
+        statsService.recordGuess(SESSION, new GuessDetails(FRANCE, FRANCE, true, null, null));
+        statsService.recordGuess(SESSION, new GuessDetails(GERMANY, GERMANY, true, null, null));
         statsService.finishGame(SESSION);
 
         UserStats stats = statsService.getUserStats(PLAYER);

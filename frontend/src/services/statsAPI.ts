@@ -5,8 +5,9 @@ const BASE = '/api/stats';
 export interface GuessPayload {
     targetRegionId: number;
     selectedRegionId: number | null;
-    lat: number;
-    lng: number;
+    correct: boolean;
+    lat: number | null;
+    lng: number | null;
 }
 
 export interface GameSummary {
