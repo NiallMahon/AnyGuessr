@@ -78,4 +78,12 @@ public class UserGameEntity {
     public Instant getFinishedAt() {
         return finishedAt;
     }
+
+    public int getCorrectGuesses() {
+        return correctGuesses;
+    }
+
+    public int getIncorrectGuesses() {
+        return incorrectGuesses;
+    }
 }

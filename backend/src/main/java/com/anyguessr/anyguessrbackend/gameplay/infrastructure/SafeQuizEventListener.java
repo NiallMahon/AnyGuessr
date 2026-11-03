@@ -3,7 +3,6 @@ package com.anyguessr.anyguessrbackend.gameplay.infrastructure;
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
-import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,32 +50,19 @@ public class SafeQuizEventListener implements QuizEventListener {
     }
 
     @Override
-    public void guessMade(
-            QuizSessionId sessionId,
-            RegionId target,
-            RegionId selected,
-            boolean correct
-    ) {
-        announce(
-                "guess made",
-                sessionId,
-                () -> listener.guessMade(
-                        sessionId,
-                        target,
-                        selected,
-                        correct
-                )
-        );
-    }
-
-    @Override
     public void quizFinished(
-            QuizSessionId sessionId
+            QuizSessionId sessionId,
+            int correctAnswers,
+            int answeredTargets
     ) {
         announce(
                 "quiz finished",
                 sessionId,
-                () -> listener.quizFinished(sessionId)
+                () -> listener.quizFinished(
+                        sessionId,
+                        correctAnswers,
+                        answeredTargets
+                )
         );
     }
 

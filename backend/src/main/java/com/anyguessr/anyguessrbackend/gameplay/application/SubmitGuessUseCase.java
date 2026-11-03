@@ -47,29 +47,17 @@ public class SubmitGuessUseCase {
             );
         }
 
-        /*
-         * A guess is the scored first attempt unless the player
-         * is still correcting an earlier wrong answer.
-         */
-        boolean scoredAttempt =
-                !session.isCorrectionRequired();
-
         GuessResult result =
                 session.submitGuess(selectedRegionId);
 
         quizSessionRepository.save(session);
 
-        if (scoredAttempt) {
-            quizEventListener.guessMade(
-                    sessionId,
-                    result.targetRegionId(),
-                    result.selectedRegionId(),
-                    result.correct()
-            );
-        }
-
         if (result.quizComplete()) {
-            quizEventListener.quizFinished(sessionId);
+            quizEventListener.quizFinished(
+                    sessionId,
+                    result.correctAnswers(),
+                    result.answeredTargets()
+            );
         }
 
         return result;

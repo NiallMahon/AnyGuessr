@@ -19,11 +19,8 @@ public class StatsConfig {
     }
 
     @Bean
-    public GameRecordRepository gameRecordRepository(
-            SpringDataUserGameRepository userGameRepository,
-            SpringDataGuessRepository guessRepository
-    ) {
-        return new JpaGameRecordRepository(userGameRepository, guessRepository);
+    public GameRecordRepository gameRecordRepository(SpringDataUserGameRepository userGameRepository) {
+        return new JpaGameRecordRepository(userGameRepository);
     }
 
     @Bean
