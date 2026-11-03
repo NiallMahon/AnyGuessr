@@ -46,7 +46,6 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             + "FROM UserGameEntity g WHERE g.userId = :userId AND g.finishedAt IS NOT NULL")
     TotalsRow findTotals(long userId);
 
-    // Plain SQL: map names are in map_data, which stats has no entity for.
     @Query(value = "SELECT ug.session_id AS sessionId, m.map_name AS mapName, ug.finished_at AS finishedAt, "
             + "ug.correct_guesses AS correctGuesses, ug.incorrect_guesses AS incorrectGuesses, "
             + "ug.duration AS duration "

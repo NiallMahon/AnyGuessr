@@ -39,7 +39,6 @@ async function post<T>(
   return response.json() as Promise<T>;
 }
 
-// userId is null when the player is not logged in.
 export function startQuiz(
   mapId: string,
   userId: number | null

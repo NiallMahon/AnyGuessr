@@ -1,4 +1,4 @@
-// REST endpoint for a player's profile stats. Games are recorded from gameplay, never over HTTP.
+// REST endpoint for a player's profile stats.
 package com.anyguessr.anyguessrbackend.stats.ui;
 
 import com.anyguessr.anyguessrbackend.stats.application.StatsService;

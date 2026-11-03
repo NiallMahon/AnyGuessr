@@ -1,0 +1,189 @@
+/* Styles for the profile stat tiles and accuracy bar chart. */
+:root {
+    --chart-bar: #aa3bff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --chart-bar: #a855f7;
+    }
+}
+
+.stats-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.stats-panel h2 {
+    margin: 0;
+}
+
+.stat-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 800px) {
+    .stat-tiles {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.stat-tile,
+.stats-card {
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+.stat-tile-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-h);
+}
+
+.stat-tile-value {
+    margin-top: 12px;
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--text-h);
+}
+
+.stat-tile-caption {
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.stats-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 14px;
+}
+
+.stats-card-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-h);
+}
+
+.stats-card-empty {
+    margin-top: 16px;
+    font-size: 15px;
+}
+
+.accuracy-chart {
+    margin: 32px 0 0 44px;
+}
+
+.accuracy-chart-plot {
+    position: relative;
+    height: 200px;
+}
+
+.accuracy-chart-gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 1px solid var(--border);
+}
+
+.accuracy-chart-gridline span {
+    position: absolute;
+    right: calc(100% + 8px);
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.accuracy-chart-bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.accuracy-chart-bars li {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    outline: none;
+}
+
+.accuracy-chart-bar {
+    position: relative;
+    width: min(24px, 70%);
+    border-radius: 4px 4px 0 0;
+    background: var(--chart-bar);
+}
+
+.accuracy-chart-bars li:hover .accuracy-chart-bar,
+.accuracy-chart-bars li:focus-visible .accuracy-chart-bar {
+    filter: brightness(1.2);
+}
+
+.accuracy-chart-label {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--text-h);
+}
+
+.accuracy-chart-tooltip {
+    position: absolute;
+    z-index: 1;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.accuracy-chart-tooltip strong {
+    font-size: 15px;
+    color: var(--text-h);
+}
+
+.accuracy-chart-bars li:first-child .accuracy-chart-tooltip {
+    left: 0;
+    transform: none;
+}
+
+.accuracy-chart-bars li:last-child .accuracy-chart-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.accuracy-chart-bars li:hover .accuracy-chart-tooltip,
+.accuracy-chart-bars li:focus-visible .accuracy-chart-tooltip {
+    display: flex;
+}
+
+.accuracy-chart-dates {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 13px;
+}

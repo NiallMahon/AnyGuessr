@@ -1,6 +1,4 @@
-// Hears gameplay's quiz announcements and records them as stats games.
-// The only stats class that knows about gameplay: it turns gameplay's IDs into stats' own.
-// Gameplay logs any failure here, so a stats problem never stops a quiz.
+// Records gameplay's quiz start and final score as stats games.
 package com.anyguessr.anyguessrbackend.stats.infrastructure;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
@@ -23,7 +21,6 @@ public class GameplayStatsListener implements QuizEventListener {
         this.statsService = statsService;
     }
 
-    // Players who aren't logged in are not recorded.
     @Override
     public void quizStarted(
             QuizSessionId sessionId,

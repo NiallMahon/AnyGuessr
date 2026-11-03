@@ -21,7 +21,7 @@ public class StatsService {
     ) {
     }
 
-    private static final int RECENT_GAME_COUNT = 3;
+    private static final int RECENT_GAME_COUNT = 10;
 
     private final GameRecordRepository gameRecordRepository;
     private final Clock clock;
@@ -39,7 +39,6 @@ public class StatsService {
         gameRecordRepository.add(GameRecord.start(sessionId, userId, mapId, clock.instant()));
     }
 
-    // Only started games are finished, so a guest's quiz is skipped.
     public void finishGame(GameSessionId sessionId, Score score) {
         gameRecordRepository.findBySessionId(sessionId).ifPresent(gameRecord -> {
             gameRecord.finish(clock.instant(), score);

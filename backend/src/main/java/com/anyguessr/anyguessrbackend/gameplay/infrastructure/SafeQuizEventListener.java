@@ -1,3 +1,4 @@
+// Passes quiz events on and logs any listener failure, so another feature can't break gameplay.
 package com.anyguessr.anyguessrbackend.gameplay.infrastructure;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
@@ -7,12 +8,6 @@ import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*
- * Passes quiz announcements on to the real listener.
- *
- * If the listener fails, the error is logged and the quiz
- * carries on, so another feature can never break gameplay.
- */
 public class SafeQuizEventListener implements QuizEventListener {
 
     private static final Logger log =

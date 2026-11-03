@@ -51,7 +51,6 @@ function MapSelector() {
     setStartingMapId(mapId);
     setError(null);
 
-    // Set by the login and register pages.
     const userId =
       sessionStorage.getItem("userId");
 

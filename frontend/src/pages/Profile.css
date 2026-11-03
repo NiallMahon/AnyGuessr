@@ -16,31 +16,8 @@
     border-radius: 8px;
     background-color: var(--bg);
 }
-.profile-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    width: 100%;
+.profile-stats-status {
     margin-top: 24px;
-    padding: 20px;
-
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-sizing: border-box;
-}
-
-.profile-stats div {
-    flex: 1;
-    min-width: 110px;
-    text-align: center;
-    font-size: 16px;
-    color: var(--text);
-}
-
-.profile-stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: bold;
 }
 .profile-avatar {
     width: 110px;
@@ -103,42 +80,4 @@
 
 .profile-edit:hover {
     background-color: var(--border);
-} 
-
-.profile-recent-games{
-    width: 100%;
-    min-height: 300px;
-    padding: 24px;
-
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-sizing: border-box;
-}
-
-.recent-games h2 {
-    margin: 0 0 20px;
-
-}
-
-.recent-games-list {
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-}
-
-.game-card {
-    min-height: 180px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    
-}
-
-
-.game-card h3 {
-    margin: 0 0 8px;
-}
-
-.game-card p {
-    margin: 4px 0;
 }
