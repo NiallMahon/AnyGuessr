@@ -28,7 +28,13 @@ function WorldMap() {
         setSessionId(id);
       }
 
-      await recordGuess(id, { targetRegionId: TARGET_REGION_ID, selectedRegionId: regionId, lat: 0, lng: 0 });
+      await recordGuess(id, {
+        targetRegionId: TARGET_REGION_ID,
+        selectedRegionId: regionId,
+        correct: regionId === TARGET_REGION_ID,
+        lat: null,
+        lng: null,
+      });
     } finally {
       setSending(false);
     }

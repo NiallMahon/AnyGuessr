@@ -20,8 +20,9 @@ public class StatsService {
     public record GuessDetails(
             RegionId targetRegionId,
             RegionId selectedRegionId,
-            double lat,
-            double lng
+            boolean correct,
+            Double lat,
+            Double lng
     ) {
     }
 
@@ -97,6 +98,7 @@ public class StatsService {
         Guess guess = gameRecord.recordGuess(
                 details.targetRegionId(),
                 details.selectedRegionId(),
+                details.correct(),
                 details.lat(),
                 details.lng(),
                 clock.instant()

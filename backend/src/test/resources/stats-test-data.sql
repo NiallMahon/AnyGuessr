@@ -1,4 +1,11 @@
 -- Test data: one player and one map with two regions.
+-- Old rows are cleared first, so every test starts from the same data.
+
+DELETE FROM guesses;
+DELETE FROM user_games;
+DELETE FROM regions;
+DELETE FROM map_data;
+DELETE FROM users;
 
 INSERT INTO users (user_id, username, created_at) VALUES (1, 'player-one', '2026-11-01 00:00:00');
 

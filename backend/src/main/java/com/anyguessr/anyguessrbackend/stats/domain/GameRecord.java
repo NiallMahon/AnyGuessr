@@ -15,8 +15,9 @@ public class GameRecord {
             int attemptNumber,
             RegionId targetRegionId,
             RegionId selectedRegionId,
-            double lat,
-            double lng,
+            boolean correct,
+            Double lat,
+            Double lng,
             Instant guessedAt
     ) {
 
@@ -29,13 +30,13 @@ public class GameRecord {
                 throw new IllegalArgumentException("Target region must not be null");
             }
 
+            if (correct && selectedRegionId == null) {
+                throw new IllegalArgumentException("A guess with no selected region cannot be correct");
+            }
+
             if (guessedAt == null) {
                 throw new IllegalArgumentException("Guess time must not be null");
             }
-        }
-
-        public boolean correct() {
-            return targetRegionId.equals(selectedRegionId);
         }
     }
 
@@ -131,8 +132,9 @@ public class GameRecord {
     public Guess recordGuess(
             RegionId targetRegionId,
             RegionId selectedRegionId,
-            double lat,
-            double lng,
+            boolean correct,
+            Double lat,
+            Double lng,
             Instant guessedAt
     ) {
         if (isFinished()) {
@@ -147,6 +149,7 @@ public class GameRecord {
                 guesses.size() + 1,
                 targetRegionId,
                 selectedRegionId,
+                correct,
                 lat,
                 lng,
                 guessedAt
