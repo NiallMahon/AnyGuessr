@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { recordGameStart, recordRegionClick } from "../../services/statsAPI";
+import { recordGuess, startGame } from "../../services/statsAPI";
 
 const DEMO_USER_ID = 1;
 const DEMO_MAP_ID = 1;
@@ -7,12 +7,31 @@ const TARGET_REGION_ID = 1;
 
 function WorldMap() {
   const [selected, setSelected] = useState<string | null>(null);
-  const [gameId, setGameId] = useState<number | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   async function guess(regionId: number) {
-    const id = gameId ?? await recordGameStart(DEMO_USER_ID, DEMO_MAP_ID);
-    setGameId(id);
-    await recordRegionClick(id, { targetRegionId: TARGET_REGION_ID, selectedRegionId: regionId, lat: 0, lng: 0 });
+    // clicks made while the last one is still being sent are ignored, so the game
+    // is only started once and guesses reach the server in the order they were made
+    if (sending) {
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      let id = sessionId;
+
+      if (!id) {
+        id = crypto.randomUUID();
+        await startGame(id, DEMO_USER_ID, DEMO_MAP_ID);
+        setSessionId(id);
+      }
+
+      await recordGuess(id, { targetRegionId: TARGET_REGION_ID, selectedRegionId: regionId, lat: 0, lng: 0 });
+    } finally {
+      setSending(false);
+    }
   }
 
   return (

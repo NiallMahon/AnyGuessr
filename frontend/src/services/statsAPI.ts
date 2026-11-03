@@ -1,22 +1,15 @@
-/*
-frontend for game stats. game files call these functions to send data to the backend for
-storage/calculating results
-
-recordGameStart   records gameId
-recordRegionClick on every click (targetregion, clickedregion, lat/lng of click, timestamp)
-recordGameEnd     sends data to calculate final score in backend
-*/
+// Sends a game's start, guesses (one at a time, in order) and finish to the stats backend.
 
 const BASE = '/api/stats';
 
-export interface ClickPayload {
+export interface GuessPayload {
     targetRegionId: number;
     selectedRegionId: number | null;
     lat: number;
     lng: number;
 }
 
-export interface GameEndResult {
+export interface GameSummary {
     correct: number;
     incorrect: number;
     durationSeconds: number;
@@ -34,15 +27,14 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
     return (text ? JSON.parse(text) : undefined) as T;
 }
 
-export async function recordGameStart(userId: number, mapId: number): Promise<number> {
-    const res = await post<{ gameId: number }>('/games', { userId, mapId });
-    return res.gameId;
+export function startGame(sessionId: string, userId: number, mapId: number): Promise<void> {
+    return post<void>(`/games/${sessionId}`, { userId, mapId });
 }
 
-export function recordRegionClick(gameId: number, click: ClickPayload, clickedAt: Date = new Date()): Promise<void> {
-    return post<void>(`/games/${gameId}/clicks`, { ...click, clickedAt });
+export function recordGuess(sessionId: string, guess: GuessPayload): Promise<void> {
+    return post<void>(`/games/${sessionId}/guesses`, guess);
 }
 
-export function recordGameEnd(gameId: number): Promise<GameEndResult> {
-    return post<GameEndResult>(`/games/${gameId}/end`);
+export function finishGame(sessionId: string): Promise<GameSummary> {
+    return post<GameSummary>(`/games/${sessionId}/finish`);
 }
