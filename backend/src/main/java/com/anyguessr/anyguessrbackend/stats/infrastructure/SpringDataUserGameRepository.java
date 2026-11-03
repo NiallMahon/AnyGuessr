@@ -1,4 +1,4 @@
-// Spring Data queries for the user_games table, plus the checks stats needs on users, maps and regions.
+// Spring Data queries for the user_games table.
 package com.anyguessr.anyguessrbackend.stats.infrastructure;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,13 +32,12 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
 
     Optional<UserGameEntity> findBySessionId(String sessionId);
 
-    // Only an unfinished game is changed, so 0 means it was already finished.
     @Modifying
     @Transactional
     @Query("UPDATE UserGameEntity g SET g.finishedAt = :finishedAt, g.duration = :duration, "
             + "g.correctGuesses = :correct, g.incorrectGuesses = :incorrect "
-            + "WHERE g.sessionId = :sessionId AND g.finishedAt IS NULL")
-    int markFinished(String sessionId, Instant finishedAt, int duration, int correct, int incorrect);
+            + "WHERE g.sessionId = :sessionId")
+    void markFinished(String sessionId, Instant finishedAt, int duration, int correct, int incorrect);
 
     @Query("SELECT COUNT(g) AS gamesPlayed, "
             + "COALESCE(SUM(g.correctGuesses), 0) AS correct, "
@@ -56,14 +55,4 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             + "ORDER BY ug.finished_at DESC, ug.game_id DESC LIMIT :limit",
             nativeQuery = true)
     List<RecentGameRow> findRecentFinished(long userId, int limit);
-
-    @Query(value = "SELECT COUNT(*) FROM users WHERE user_id = :userId", nativeQuery = true)
-    long countUsers(long userId);
-
-    @Query(value = "SELECT COUNT(*) FROM map_data WHERE map_id = :mapId", nativeQuery = true)
-    long countMaps(long mapId);
-
-    @Query(value = "SELECT COUNT(*) FROM regions WHERE region_id = :regionId AND map_id = :mapId",
-            nativeQuery = true)
-    long countRegionsOnMap(long regionId, long mapId);
 }

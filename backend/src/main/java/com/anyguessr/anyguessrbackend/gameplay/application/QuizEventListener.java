@@ -2,7 +2,6 @@ package com.anyguessr.anyguessrbackend.gameplay.application;
 
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
-import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 
 /*
  * Lets other features hear what happens in a quiz without
@@ -32,25 +31,16 @@ public interface QuizEventListener {
     }
 
     /*
-     * Announced after a guess has been saved.
-     *
-     * Only the player's one scored first attempt at each target
-     * is announced. Correction clicks after a wrong answer are not.
-     */
-    default void guessMade(
-            QuizSessionId sessionId,
-            RegionId target,
-            RegionId selected,
-            boolean correct
-    ) {
-    }
-
-    /*
      * Announced after the guess that completed the quiz
-     * has been saved.
+     * has been saved, with the quiz's final score.
+     *
+     * The score comes from the saved quiz session, not
+     * from the player, so it cannot be edited.
      */
     default void quizFinished(
-            QuizSessionId sessionId
+            QuizSessionId sessionId,
+            int correctAnswers,
+            int answeredTargets
     ) {
     }
 }

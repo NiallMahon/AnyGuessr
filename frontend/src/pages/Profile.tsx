@@ -1,6 +1,6 @@
 import "./Profile.css";
 import {useEffect, useState} from "react";
-import {fetchUserStats, type UserStats} from "../services/userStatsAPI";
+import {fetchUserStats, type UserStats} from "../services/statsAPI";
 
 type UserProfile = {
     id: number;

@@ -9,6 +9,7 @@ import com.anyguessr.anyguessrbackend.gameplay.infrastructure.InMemoryQuizSessio
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,13 +59,10 @@ class SubmitGuessUseCaseTest {
         InMemoryQuizSessionRepository repository =
                 new InMemoryQuizSessionRepository();
 
-        RecordingQuizEventListener listener =
-                new RecordingQuizEventListener();
-
         SubmitGuessUseCase useCase =
                 new SubmitGuessUseCase(
                         repository,
-                        listener
+                        QuizEventListener.NONE
                 );
 
         assertThrows(
@@ -74,115 +72,10 @@ class SubmitGuessUseCaseTest {
                         new RegionId("FR")
                 )
         );
-
-        assertTrue(listener.events().isEmpty());
     }
 
     @Test
-    void correctGuessOnLastTargetAnnouncesGuessThenFinish() {
-        QuizSessionId sessionId =
-                new QuizSessionId("quiz-1");
-
-        RegionId france =
-                new RegionId("FR");
-
-        InMemoryQuizSessionRepository repository =
-                new InMemoryQuizSessionRepository();
-
-        repository.save(
-                new QuizSession(
-                        sessionId,
-                        new MapId("world-map"),
-                        List.of(france)
-                )
-        );
-
-        RecordingQuizEventListener listener =
-                new RecordingQuizEventListener();
-
-        SubmitGuessUseCase useCase =
-                new SubmitGuessUseCase(
-                        repository,
-                        listener
-                );
-
-        useCase.execute(sessionId, france);
-
-        assertEquals(
-                List.of(
-                        "guess quiz-1 target=FR selected=FR correct=true",
-                        "finished quiz-1"
-                ),
-                listener.events()
-        );
-    }
-
-    @Test
-    void onlyTheScoredFirstAttemptAtEachTargetIsAnnounced() {
-        QuizSessionId sessionId =
-                new QuizSessionId("quiz-1");
-
-        RegionId france =
-                new RegionId("FR");
-
-        RegionId germany =
-                new RegionId("DE");
-
-        QuizSession session = new QuizSession(
-                sessionId,
-                new MapId("world-map"),
-                List.of(france, germany)
-        );
-
-        /*
-         * Targets are shuffled, so find out which one comes first.
-         */
-        RegionId first =
-                session.getCurrentTarget();
-
-        RegionId second =
-                first.equals(france) ? germany : france;
-
-        InMemoryQuizSessionRepository repository =
-                new InMemoryQuizSessionRepository();
-
-        repository.save(session);
-
-        RecordingQuizEventListener listener =
-                new RecordingQuizEventListener();
-
-        SubmitGuessUseCase useCase =
-                new SubmitGuessUseCase(
-                        repository,
-                        listener
-                );
-
-        /* Scored first attempt: wrong. */
-        useCase.execute(sessionId, second);
-
-        /* Correction clicks: wrong again, then right. */
-        useCase.execute(sessionId, second);
-        useCase.execute(sessionId, first);
-
-        /* Scored first attempt on the last target: right. */
-        useCase.execute(sessionId, second);
-
-        assertEquals(
-                List.of(
-                        "guess quiz-1 target=" + first.value()
-                                + " selected=" + second.value()
-                                + " correct=false",
-                        "guess quiz-1 target=" + second.value()
-                                + " selected=" + second.value()
-                                + " correct=true",
-                        "finished quiz-1"
-                ),
-                listener.events()
-        );
-    }
-
-    @Test
-    void finishIsAnnouncedWhenCorrectionClickCompletesQuiz() {
+    void finishedQuizAnnouncesTheServersScore() {
         QuizSessionId sessionId =
                 new QuizSessionId("quiz-1");
 
@@ -209,34 +102,29 @@ class SubmitGuessUseCaseTest {
 
         repository.save(session);
 
-        RecordingQuizEventListener listener =
-                new RecordingQuizEventListener();
+        List<String> finished =
+                new ArrayList<>();
 
         SubmitGuessUseCase useCase =
                 new SubmitGuessUseCase(
                         repository,
-                        listener
+                        new QuizEventListener() {
+                            @Override
+                            public void quizFinished(
+                                    QuizSessionId id,
+                                    int correctAnswers,
+                                    int answeredTargets
+                            ) {
+                                finished.add(correctAnswers + "/" + answeredTargets);
+                            }
+                        }
                 );
 
+        /* Wrong first attempt, a correction click, then right. */
+        useCase.execute(sessionId, second);
         useCase.execute(sessionId, first);
-
-        /* Scored first attempt on the last target: wrong. */
-        useCase.execute(sessionId, first);
-
-        /* Correction click that completes the quiz. */
         useCase.execute(sessionId, second);
 
-        assertEquals(
-                List.of(
-                        "guess quiz-1 target=" + first.value()
-                                + " selected=" + first.value()
-                                + " correct=true",
-                        "guess quiz-1 target=" + second.value()
-                                + " selected=" + first.value()
-                                + " correct=false",
-                        "finished quiz-1"
-                ),
-                listener.events()
-        );
+        assertEquals(List.of("1/2"), finished);
     }
 }
