@@ -1,6 +1,8 @@
+// Lets a player pick a map to start a quiz, with each map's leaderboard beside it.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { startQuiz } from "../services/gameplayAPI";
+import MapLeaderboard from "../components/MapLeaderboard";
 import "./MapSelector.css";
 
 function MapSelector() {
@@ -105,9 +107,9 @@ function MapSelector() {
       <div className="map-grid">
 
         {maps.map((map) => (
+          <div className="map-row" key={map.id}>
           <div
             className="map-card"
-            key={map.id}
             onClick={() => {
               if (
                 map.available &&
@@ -156,6 +158,12 @@ function MapSelector() {
                 </span>
               </div>
             </div>
+          </div>
+          <MapLeaderboard
+            mapId={map.id}
+            mapName={map.name}
+            available={map.available}
+          />
           </div>
         ))}
 

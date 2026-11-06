@@ -62,6 +62,10 @@ public class UserGameEntity {
         return gameId;
     }
 
+    public String getSessionId() {
+        return sessionId;
+    }
+
     public long getUserId() {
         return userId;
     }

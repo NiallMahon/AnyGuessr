@@ -4,6 +4,7 @@ package com.anyguessr.anyguessrbackend.gameplay.infrastructure;
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
+import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,29 @@ public class SafeQuizEventListener implements QuizEventListener {
                         sessionId,
                         userId,
                         mapId
+                )
+        );
+    }
+
+    @Override
+    public void guessMade(
+            QuizSessionId sessionId,
+            RegionId target,
+            RegionId selected,
+            boolean correct,
+            Double clickedLat,
+            Double clickedLng
+    ) {
+        announce(
+                "guess made",
+                sessionId,
+                () -> listener.guessMade(
+                        sessionId,
+                        target,
+                        selected,
+                        correct,
+                        clickedLat,
+                        clickedLng
                 )
         );
     }

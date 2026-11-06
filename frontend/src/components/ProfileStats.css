@@ -1,4 +1,4 @@
-/* Styles for the profile stat tiles and accuracy bar chart. */
+/* Styles for the profile stat tiles, accuracy chart, trophies, best scores, pop-ups and delete button. */
 :root {
     --chart-bar: #aa3bff;
 }
@@ -18,6 +18,15 @@
 
 .stats-panel h2 {
     margin: 0;
+}
+
+.stats-panel-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 15px;
 }
 
 .stat-tiles {
@@ -186,4 +195,175 @@
     justify-content: space-between;
     margin-top: 8px;
     font-size: 13px;
+}
+
+.stats-card-pair {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 800px) {
+    .stats-card-pair {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stats-link {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.stats-link:hover {
+    text-decoration: underline;
+}
+
+.trophy-shelf,
+.stats-rows {
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.trophy-shelf {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.trophy-badge {
+    padding: 6px 12px;
+    border: 1px solid var(--accent-border);
+    border-radius: 999px;
+    background: var(--accent-bg);
+    font-size: 14px;
+    color: var(--text-h);
+}
+
+.stats-rows li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.stats-row-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stats-rows strong {
+    font-weight: 500;
+    color: var(--text-h);
+}
+
+.trophy-locked {
+    opacity: 0.55;
+}
+
+.trophy-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 72px;
+    text-align: right;
+}
+
+.trophy-progress-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+}
+
+.trophy-progress-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--chart-bar);
+}
+
+.stats-row-link {
+    font-weight: 500;
+    text-align: inherit;
+}
+
+.map-detail-heading {
+    margin: 24px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-h);
+}
+
+.game-result {
+    max-width: 480px;
+    margin: 24px auto;
+    text-align: left;
+}
+
+.game-result-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.leaderboard-place {
+    width: 32px;
+    font-variant-numeric: tabular-nums;
+}
+
+.stats-rows .leaderboard-you,
+.stats-rows .leaderboard-you strong {
+    color: var(--accent);
+}
+
+.stats-dialog {
+    width: min(480px, calc(100vw - 32px));
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: var(--shadow);
+    text-align: left;
+}
+
+.stats-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.stats-privacy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.stats-privacy p {
+    margin: 0;
+}
+
+.stats-delete {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    color: #ef4444;
+    cursor: pointer;
+}
+
+.stats-delete:hover {
+    border-color: #ef4444;
 }

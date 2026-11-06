@@ -1,3 +1,27 @@
-h1 {
-    colour: green;
+/* Map selector rows: each map card with its leaderboard beside it. */
+.map-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    max-width: 1100px;
+    margin: 0 auto 24px;
+    padding: 0 16px;
+}
+
+.map-card img {
+    display: block;
+    width: 100%;
+    border-radius: 12px;
+}
+
+.map-leaderboard .stats-rows {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+@media (max-width: 800px) {
+    .map-row {
+        grid-template-columns: 1fr;
+    }
 }

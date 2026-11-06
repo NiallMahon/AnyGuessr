@@ -1,3 +1,4 @@
+// The logged-in player's profile page: header, stats, comments, rank and friends.
 import "./Profile.css";
 import {useEffect, useState} from "react";
 import {fetchUserStats, type UserStats} from "../services/statsAPI";
@@ -11,7 +12,6 @@ type UserProfile = {
     gamesPlayed: number;
 };
 
-//Simple profile page for the user, with a profile picture, name, location, and stats. Also would include recent games, comments, and friends
 function Profile() {
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -73,29 +73,24 @@ function Profile() {
     }
 
     return (
-        // Main profile container
         <main className="profile">
-            {/* Profile header section with avatar, name, location, and member since date */}
             <section className="profile-header">
                     <div className="profile-avatar">
-                        {/* Placeholder for profile picture, currently just initials */}
                         <span>{profile?.initials}</span>
                     </div>
                 <div className="profile-details">
                     <h1>{profile?.name}</h1>
                     <p>{profile?.location}</p>
                 </div>
-                {/* Edit profile button */}
                 <button className="profile-edit" type="button">
                 Edit Profile
                 </button>
             </section>
             {stats ? (
-                <ProfileStats stats={stats}/>
+                <ProfileStats stats={stats} userId={Number(userId)} onStatsDeleted={() => fetchUserStats(Number(userId)).then(setStats)}/>
             ) : (
                 <p className="profile-stats-status">{statsError ?? "Loading stats..."}</p>
             )}
-            {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
             <div className="profile-layout">
                 <div className="profile-main-content">
             <section className="profile-comments">

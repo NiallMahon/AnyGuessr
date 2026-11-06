@@ -95,6 +95,19 @@ public class GameRecord {
         return (int) Duration.between(startedAt, finishedAt).toSeconds();
     }
 
+    public double secondsPerTarget() {
+        return durationSeconds() / (double) score.total();
+    }
+
+    public boolean isBetterThan(GameRecord other) {
+        if (!isFinished() || !other.isFinished()) {
+            throw new IllegalStateException("Only finished games can be compared");
+        }
+
+        int byAccuracy = Double.compare(score.accuracyPercent(), other.score.accuracyPercent());
+        return byAccuracy != 0 ? byAccuracy > 0 : durationSeconds() < other.durationSeconds();
+    }
+
     public boolean isFinished() {
         return finishedAt != null;
     }

@@ -1,3 +1,4 @@
+// REST endpoints for starting a quiz and submitting guesses.
 package com.anyguessr.anyguessrbackend.gameplay.ui;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizResult;
@@ -55,7 +56,9 @@ public class QuizController {
                         new QuizSessionId(sessionId),
                         new RegionId(
                                 request.selectedRegionId()
-                        )
+                        ),
+                        request.clickedLat(),
+                        request.clickedLng()
                 );
 
         return GuessResponse.from(result);
