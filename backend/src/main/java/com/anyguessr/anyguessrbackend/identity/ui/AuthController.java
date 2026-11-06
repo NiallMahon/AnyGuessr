@@ -1,3 +1,4 @@
+// REST endpoints for registering and logging in.
 package com.anyguessr.anyguessrbackend.identity.ui;
 
 import com.anyguessr.anyguessrbackend.identity.application.AuthResponse;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @RestController
-//RequestMapping("/auth")
 @CrossOrigin(origins = {
         "http://localhost:5173",
         "http://localhost:5174"
@@ -25,7 +25,7 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/register")
+    @PostMapping({"/register", "/auth/register"})
     public AuthResponse register(
             @RequestBody RegisterRequest request
     ) {
