@@ -1,69 +1,29 @@
-// Profile stat tiles, streak, accuracy chart, trophies, best score and detail per map, and deleting your stats.
+// Profile stats pieces: rank and streak, maps played with search, trophies, deleting your stats, and shared badge rows and pop-ups.
 import "./ProfileStats.css";
 import {type ReactNode, useEffect, useRef, useState} from "react";
+import {Link} from "react-router-dom";
 import {
     deleteUserStats,
-    fetchMapDetail,
     formatPercent,
     formatTime,
     type MapBest,
-    type MapDetail,
-    type RecentGame,
     type Trophy,
     type UserStats
 } from "../services/statsAPI";
 
-function formatPace(seconds: number | null) {
-    return seconds === null ? "-" : `${seconds.toFixed(1)}s`;
-}
+export function RankAndStreak({stats}: {stats: UserStats}) {
+    const streak = stats.currentStreakDays;
 
-function shortDate(iso: string) {
-    return new Date(iso).toLocaleDateString(undefined, {day: "numeric", month: "short"});
-}
-
-function StatTile({label, value, caption}: {label: string; value: string | number; caption: string}) {
     return (
-        <div className="stat-tile">
-            <p className="stat-tile-label">{label}</p>
-            <p className="stat-tile-value">{value}</p>
-            <p className="stat-tile-caption">{caption}</p>
-        </div>
-    );
-}
-
-function AccuracyChart({games}: {games: RecentGame[]}) {
-    return (
-        <div className="accuracy-chart">
-            <div className="accuracy-chart-plot">
-                {[100, 50, 0].map((tick) => (
-                    <div key={tick} className="accuracy-chart-gridline" style={{bottom: `${tick}%`}}>
-                        <span>{tick}%</span>
-                    </div>
-                ))}
-                <ol className="accuracy-chart-bars">
-                    {games.map((game, index) => (
-                        <li
-                            key={game.sessionId}
-                            tabIndex={0}
-                            aria-label={`${game.mapName}, ${shortDate(game.finishedAt)}: ${formatPercent(game.accuracyPercent)} accuracy`}
-                        >
-                            <div className="accuracy-chart-bar" style={{height: `${game.accuracyPercent}%`}}>
-                                {index === games.length - 1 && (
-                                    <span className="accuracy-chart-label">{formatPercent(game.accuracyPercent)}</span>
-                                )}
-                                <div className="accuracy-chart-tooltip" role="tooltip">
-                                    <strong>{formatPercent(game.accuracyPercent)}</strong>
-                                    <span>{game.mapName} · {shortDate(game.finishedAt)}</span>
-                                    <span>{game.correct}/{game.correct + game.incorrect} correct · {formatTime(game.durationSeconds)}</span>
-                                </div>
-                            </div>
-                        </li>
-                    ))}
-                </ol>
+        <div className="rank-streak">
+            <div title="Each map gives you points for your place on its leaderboard, and your total sets this rank">
+                <p className="stat-tile-label">Rank</p>
+                <p className="stat-tile-value">{stats.overallPlace === null ? "-" : `#${stats.overallPlace}/${stats.overallPlayers}`}</p>
             </div>
-            <div className="accuracy-chart-dates">
-                <span>{shortDate(games[0].finishedAt)}</span>
-                {games.length > 1 && <span>{shortDate(games[games.length - 1].finishedAt)}</span>}
+            <div>
+                <p className="stat-tile-label">Streak</p>
+                <p className="stat-tile-value">{streak} {streak === 1 ? "day" : "days"}</p>
+                <p className="stat-tile-caption">best {stats.bestStreakDays}</p>
             </div>
         </div>
     );
@@ -93,132 +53,83 @@ export function Popup({title, open, onClose, children}: {title: string; open: bo
     );
 }
 
-function TrophyStatus({trophy}: {trophy: Trophy}) {
-    if (trophy.awardedAt) {
-        return <span>Earned {shortDate(trophy.awardedAt)}</span>;
-    }
-    if (trophy.goal === 1) {
-        return <span>Locked</span>;
-    }
+export function BadgeRow({title, status, earned, tip}: {title: string; status: string; earned: boolean; tip: string}) {
     return (
-        <span className="trophy-progress">
-            {trophy.progress} of {trophy.goal}
-            <span className="trophy-progress-bar">
-                <span style={{width: `${trophy.progress * 100 / trophy.goal}%`}}/>
-            </span>
-        </span>
+        <div className={`badge${earned ? " earned" : ""}`} title={tip}>
+            <strong>{title}</strong>
+            <span>{status}</span>
+        </div>
     );
 }
 
-function TrophyShelf({trophies}: {trophies: Trophy[]}) {
-    const [open, setOpen] = useState(false);
-    const earned = trophies.filter((trophy) => trophy.awardedAt !== null);
+function trophyStatus(trophy: Trophy) {
+    if (trophy.awardedAt) {
+        return "Unlocked";
+    }
+    return trophy.goal === 1 ? "Locked" : `${trophy.progress} of ${trophy.goal}`;
+}
+
+export function TrophyShelf({trophies}: {trophies: Trophy[]}) {
+    const earned = trophies.filter((trophy) => trophy.awardedAt !== null).length;
 
     return (
         <div className="stats-card">
             <header className="stats-card-header">
                 <h3>Trophies</h3>
-                <button type="button" className="stats-link" onClick={() => setOpen(true)}>
-                    {earned.length} of {trophies.length} · See all
-                </button>
+                <span>{earned} / {trophies.length}</span>
             </header>
-            {earned.length > 0 ? (
-                <ul className="trophy-shelf">
-                    {earned.map((trophy) => (
-                        <li key={trophy.type} className="trophy-badge" title={trophy.description}>{trophy.title}</li>
-                    ))}
-                </ul>
-            ) : <p className="stats-card-empty">Finish a quiz to earn your first trophy.</p>}
-            <Popup title="All trophies" open={open} onClose={() => setOpen(false)}>
-                <ul className="stats-rows">
-                    {trophies.map((trophy) => (
-                        <li key={trophy.type} className={trophy.awardedAt ? undefined : "trophy-locked"}>
-                            <div className="stats-row-main">
-                                <strong>{trophy.title}</strong>
-                                <span>{trophy.description}</span>
-                            </div>
-                            <TrophyStatus trophy={trophy}/>
-                        </li>
-                    ))}
-                </ul>
-            </Popup>
+            <div className="badge-grid trophy-list stats-scroll">
+                {trophies.map((trophy) => (
+                    <BadgeRow key={trophy.type} title={trophy.title} status={trophyStatus(trophy)}
+                              earned={trophy.awardedAt !== null} tip={trophy.description}/>
+                ))}
+            </div>
         </div>
     );
 }
 
-function MapDetailPopup({map, userId, onClose}: {map: MapBest; userId: number; onClose: () => void}) {
-    const [detail, setDetail] = useState<MapDetail | null>(null);
-    const [failed, setFailed] = useState(false);
-    const games = detail ? [...detail.recentGames].reverse() : [];
-
-    useEffect(() => {
-        fetchMapDetail(userId, map.mapId).then(setDetail).catch(() => setFailed(true));
-    }, [userId, map.mapId]);
-
-    return (
-        <Popup title={map.mapName} open onClose={onClose}>
-            {failed ? <p className="stats-card-empty">Could not load this map's stats.</p>
-                : detail === null ? <p className="stats-card-empty">Loading...</p>
-                : (
-                    <>
-                        <p className="stats-card-empty">
-                            {detail.gamesPlayed} {detail.gamesPlayed === 1 ? "game" : "games"}
-                            {" · "}{formatPercent(detail.accuracyPercent)} accuracy
-                            {" · "}best pace {formatPace(detail.bestPaceSeconds)}
-                            {" · "}average pace {formatPace(detail.averagePaceSeconds)}
-                        </p>
-                        {games.length > 0 && <AccuracyChart games={games}/>}
-                        <h4 className="map-detail-heading">Weak regions</h4>
-                        {detail.weakRegions.length > 0 ? (
-                            <ul className="stats-rows">
-                                {detail.weakRegions.map((region) => (
-                                    <li key={region.name}>
-                                        <div className="stats-row-main">
-                                            <strong>{region.name}</strong>
-                                            {region.mixedUpWith && <span>Often mixed up with {region.mixedUpWith}</span>}
-                                        </div>
-                                        <span>{region.correct} of {region.attempts} right</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : <p className="stats-card-empty">No weak regions yet. Regions you miss will show up here.</p>}
-                    </>
-                )}
-        </Popup>
-    );
-}
-
-function BestPerMap({maps, userId}: {maps: MapBest[]; userId: number}) {
-    const [selected, setSelected] = useState<MapBest | null>(null);
+export function MapsPlayed({maps}: {maps: MapBest[]}) {
+    const [search, setSearch] = useState("");
+    const matches = maps.filter((map) => map.mapName.toLowerCase().includes(search.trim().toLowerCase()));
 
     return (
         <div className="stats-card">
             <header className="stats-card-header">
-                <h3>Best per map</h3>
+                <h3>Maps played</h3>
                 <span>{maps.length} {maps.length === 1 ? "map" : "maps"}</span>
             </header>
-            {maps.length > 0 ? (
-                <ul className="stats-rows">
-                    {maps.map((map) => (
-                        <li key={map.mapId}>
-                            <div className="stats-row-main">
-                                <button type="button" className="stats-link stats-row-link" onClick={() => setSelected(map)}>
-                                    {map.mapName}
-                                </button>
-                                <span>{formatPercent(map.accuracyPercent)} · {formatTime(map.durationSeconds)}</span>
-                            </div>
-                            {map.flawless && <span className="trophy-badge">Flawless</span>}
-                            <span>#{map.place} of {map.players}</span>
-                        </li>
-                    ))}
-                </ul>
-            ) : <p className="stats-card-empty">Finish a quiz to get on a leaderboard.</p>}
-            {selected && <MapDetailPopup map={selected} userId={userId} onClose={() => setSelected(null)}/>}
+            {maps.length === 0 ? <p className="stats-card-empty">Finish a quiz to see your maps here.</p> : (
+                <>
+                    <input
+                        type="search"
+                        className="stats-search"
+                        placeholder="Search your maps"
+                        aria-label="Search your maps"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                    />
+                    {matches.length === 0 ? <p className="stats-card-empty">No maps match that search.</p> : (
+                        <ul className="stats-map-rows stats-scroll capped">
+                            {matches.map((map) => (
+                                <li key={map.mapId}>
+                                    <Link to={`/profile/maps/${map.mapId}`} className="stats-map-row">
+                                        <span className="stats-row-main">
+                                            <strong>{map.mapName}</strong>
+                                            <span>#{map.place} of {map.players} · {formatTime(map.durationSeconds)}</span>
+                                        </span>
+                                        <span className="trophy-badge">Best {formatPercent(map.accuracyPercent)}</span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </>
+            )}
         </div>
     );
 }
 
-function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: () => Promise<void>}) {
+export function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: () => Promise<void>}) {
     const [error, setError] = useState<string | null>(null);
 
     async function deleteStats() {
@@ -242,44 +153,3 @@ function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: 
     );
 }
 
-function ProfileStats({stats, userId, onStatsDeleted}: {stats: UserStats; userId: number; onStatsDeleted: () => Promise<void>}) {
-    const games = [...stats.recentGames].reverse();
-    const answered = stats.correctGuesses + stats.incorrectGuesses;
-
-    return (
-        <section className="stats-panel">
-            <header className="stats-panel-header">
-                <h2>Your stats</h2>
-                <span>
-                    {stats.currentStreakWeeks > 0
-                        ? `${stats.currentStreakWeeks}-week streak`
-                        : "Play this week to start a streak"}
-                    {stats.bestStreakWeeks > 0 && ` · best ${stats.bestStreakWeeks}`}
-                </span>
-            </header>
-            <div className="stat-tiles">
-                <StatTile label="Games played" value={stats.gamesPlayed} caption="all maps"/>
-                <StatTile label="Accuracy" value={formatPercent(stats.accuracyPercent)}
-                          caption={`${stats.correctGuesses} of ${answered} correct`}/>
-                <StatTile label="Best pace" value={formatPace(stats.bestPaceSeconds)} caption="per target, 50%+ right"/>
-                <StatTile label="Average pace" value={formatPace(stats.averagePaceSeconds)} caption="per target"/>
-            </div>
-            <div className="stats-card">
-                <header className="stats-card-header">
-                    <h3>Accuracy by game</h3>
-                    <span>{games.length} {games.length === 1 ? "game" : "games"}</span>
-                </header>
-                {games.length > 0
-                    ? <AccuracyChart games={games}/>
-                    : <p className="stats-card-empty">Finish a quiz to see your accuracy here.</p>}
-            </div>
-            <div className="stats-card-pair">
-                <TrophyShelf trophies={stats.trophies}/>
-                <BestPerMap maps={stats.bestPerMap} userId={userId}/>
-            </div>
-            <DeleteStats userId={userId} onStatsDeleted={onStatsDeleted}/>
-        </section>
-    );
-}
-
-export default ProfileStats;

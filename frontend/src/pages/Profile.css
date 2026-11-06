@@ -1,3 +1,4 @@
+/* Styles for the profile page: its width and the header box. */
 .profile {
     width: 100%;
     padding: 40px;
@@ -6,6 +7,7 @@
 }
 
 .profile-header {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -15,9 +17,6 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     background-color: var(--bg);
-}
-.profile-stats-status {
-    margin-top: 24px;
 }
 .profile-avatar {
     width: 110px;
@@ -32,30 +31,6 @@
     color: var(--text);
     font-size: 2rem;
     font-weight: bold;
-}
-.profile-layout {
-    margin-top: 32px;
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-    gap: 24px;
-    width: 100%;
-}
-.profile-main-content,
-.profile-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-
-}
-.profile-rank,
-.profile-friends {
-    width: 100%;
-    padding: 20px;
-
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background-color: var(--bg);
-    box-sizing: border-box;
 }
 .profile-details h1 {
     flex: 1;

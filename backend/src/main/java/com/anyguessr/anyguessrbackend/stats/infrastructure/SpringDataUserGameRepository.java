@@ -69,6 +69,11 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
         int getPlayers();
     }
 
+    interface OverallRankRow {
+        int getPlace();
+        int getPlayers();
+    }
+
     interface LeaderboardRow {
         int getPlace();
         long getUserId();
@@ -109,14 +114,8 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             + "WHERE g.sessionId = :sessionId")
     void markFinished(String sessionId, Instant finishedAt, int duration, int correct, int incorrect);
 
-    @Query(TOTALS)
-    TotalsRow findTotals(long userId, int minPercent);
-
     @Query(TOTALS + " AND g.mapId = :mapId")
     TotalsRow findTotalsOnMap(long userId, long mapId, int minPercent);
-
-    @Query(value = RECENT + NEWEST_FIRST, nativeQuery = true)
-    List<RecentGameRow> findRecentFinished(long userId, int limit);
 
     @Query(value = RECENT + "AND ug.map_id = :mapId " + NEWEST_FIRST, nativeQuery = true)
     List<RecentGameRow> findRecentFinishedOnMap(long userId, long mapId, int limit);
@@ -171,6 +170,17 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             + "WHERE r.user_id = :userId ORDER BY m.map_name",
             nativeQuery = true)
     List<MapBestRow> findBestPerMap(long userId);
+
+    @Query(value = "SELECT s.place AS place, s.players AS players "
+            + "FROM (SELECT t.user_id, RANK() OVER (ORDER BY t.points DESC) AS place, COUNT(*) OVER () AS players "
+            + "FROM (SELECT r.user_id, SUM(r.players - r.place + 1) AS points "
+            + "FROM (SELECT l.user_id, "
+            + "RANK() OVER (PARTITION BY l.map_id ORDER BY l.accuracy DESC, l.duration) AS place, "
+            + "COUNT(*) OVER (PARTITION BY l.map_id) AS players FROM leaderboard l) r "
+            + "GROUP BY r.user_id) t) s "
+            + "WHERE s.user_id = :userId",
+            nativeQuery = true)
+    Optional<OverallRankRow> findOverallRank(long userId);
 
     @Query(value = "SELECT RANK() OVER (ORDER BY t.accuracy DESC, t.duration) AS place, t.user_id AS userId, "
             + "u.username AS username, t.accuracy AS accuracy, t.duration AS duration "

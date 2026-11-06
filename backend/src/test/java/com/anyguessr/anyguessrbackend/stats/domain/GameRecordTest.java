@@ -1,7 +1,8 @@
-// Unit tests for the stats rules: finishing a game, comparing games, trophies, streaks and weak regions.
+// Unit tests for the stats rules: finishing a game, comparing games, trophies, streaks, weak regions and map badges.
 package com.anyguessr.anyguessrbackend.stats.domain;
 
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.FirstGuess;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.MapBest;
 
 import org.junit.jupiter.api.Test;
 
@@ -51,16 +52,16 @@ class GameRecordTest {
     }
 
     @Test
-    void streakCountsWeeksInARowAndSurvivesUntilTheNextWeekEnds() {
+    void streakCountsDaysInARowAndSurvivesUntilTheNextDayEnds() {
         Instant monday = Instant.parse("2026-11-02T10:00:00Z");
         List<GameRecord> games = List.of(
                 finishedOn(monday),
-                finishedOn(monday.plusSeconds(WEEK)),
-                finishedOn(monday.plusSeconds(3 * WEEK))
+                finishedOn(monday.plusSeconds(DAY)),
+                finishedOn(monday.plusSeconds(3 * DAY))
         );
 
-        assertEquals(new PlayStreak(1, 2), PlayStreak.from(games, monday.plusSeconds(4 * WEEK)));
-        assertEquals(new PlayStreak(0, 2), PlayStreak.from(games, monday.plusSeconds(5 * WEEK)));
+        assertEquals(new PlayStreak(1, 2), PlayStreak.from(games, monday.plusSeconds(4 * DAY)));
+        assertEquals(new PlayStreak(0, 2), PlayStreak.from(games, monday.plusSeconds(5 * DAY)));
     }
 
     @Test
@@ -78,7 +79,19 @@ class GameRecordTest {
         assertEquals(List.of(new WeakRegion("France", 4, 1, "Germany")), WeakRegion.rank(guesses));
     }
 
-    private static final int WEEK = 7 * 24 * 60 * 60;
+    @Test
+    void mapBadgesNeedABestScoreAndFollowTheirRules() {
+        assertFalse(MapBadge.FIRST_GAME.isEarned(0, null));
+        assertTrue(MapBadge.FLAWLESS.isEarned(1, best(new Score(3, 0), 4)));
+        assertFalse(MapBadge.TOP_THREE.isEarned(1, best(new Score(3, 0), 4)));
+        assertTrue(MapBadge.TEN_GAMES.isEarned(10, best(new Score(1, 2), 4)));
+    }
+
+    private static final int DAY = 24 * 60 * 60;
+
+    private static MapBest best(Score score, int place) {
+        return new MapBest(new MapId(3), "World", score, 30, place, 4);
+    }
 
     private static GameRecord finishedOn(Instant finishedAt) {
         GameRecord game = GameRecord.start(new GameSessionId("quiz"), new UserId(7), new MapId(3), finishedAt);

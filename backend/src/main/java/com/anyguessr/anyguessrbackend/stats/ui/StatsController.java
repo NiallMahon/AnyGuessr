@@ -2,6 +2,7 @@
 package com.anyguessr.anyguessrbackend.stats.ui;
 
 import com.anyguessr.anyguessrbackend.stats.application.StatsService;
+import com.anyguessr.anyguessrbackend.stats.application.StatsService.BadgeStatus;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.GameResult;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.MapComparison;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.MapDetail;
@@ -11,6 +12,7 @@ import com.anyguessr.anyguessrbackend.stats.domain.GameRecord;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.FinishedGame;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.LeaderboardEntry;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.MapBest;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.OverallRank;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.PlayerTotals;
 import com.anyguessr.anyguessrbackend.stats.domain.GameSessionId;
 import com.anyguessr.anyguessrbackend.stats.domain.MapId;
@@ -125,47 +127,39 @@ public class StatsController {
     }
 
     public record UserStatsResponse(
-            int gamesPlayed,
-            int correctGuesses,
-            int incorrectGuesses,
-            double accuracyPercent,
-            Double bestPaceSeconds,
-            Double averagePaceSeconds,
-            int currentStreakWeeks,
-            int bestStreakWeeks,
-            List<RecentGameResponse> recentGames,
+            int currentStreakDays,
+            int bestStreakDays,
             List<TrophyResponse> trophies,
-            List<MapBestResponse> bestPerMap
+            List<MapBestResponse> bestPerMap,
+            Integer overallPlace,
+            Integer overallPlayers
     ) {
 
         public static UserStatsResponse from(UserStats stats) {
-            PlayerTotals totals = stats.totals();
+            OverallRank overall = stats.overallRank();
 
             return new UserStatsResponse(
-                    totals.gamesPlayed(),
-                    totals.score().correct(),
-                    totals.score().incorrect(),
-                    totals.score().accuracyPercent(),
-                    totals.bestPaceSeconds(),
-                    totals.averagePaceSeconds(),
-                    stats.streak().currentWeeks(),
-                    stats.streak().bestWeeks(),
-                    stats.recentGames().stream().map(RecentGameResponse::from).toList(),
+                    stats.streak().currentDays(),
+                    stats.streak().bestDays(),
                     stats.trophies().stream().map(TrophyResponse::from).toList(),
-                    stats.bestPerMap().stream().map(MapBestResponse::from).toList()
+                    stats.bestPerMap().stream().map(MapBestResponse::from).toList(),
+                    overall == null ? null : overall.place(),
+                    overall == null ? null : overall.players()
             );
         }
     }
 
-    public record WeakRegionResponse(
-            String name,
-            int attempts,
-            int correct,
-            String mixedUpWith
-    ) {
+    public record WeakRegionResponse(String name, int attempts, int correct, String mixedUpWith) {
 
         public static WeakRegionResponse from(WeakRegion region) {
             return new WeakRegionResponse(region.name(), region.attempts(), region.correct(), region.mixedUpWith());
+        }
+    }
+
+    public record MapBadgeResponse(String title, String description, boolean earned) {
+
+        public static MapBadgeResponse from(BadgeStatus status) {
+            return new MapBadgeResponse(status.badge().getTitle(), status.badge().getDescription(), status.earned());
         }
     }
 
@@ -174,8 +168,10 @@ public class StatsController {
             double accuracyPercent,
             Double bestPaceSeconds,
             Double averagePaceSeconds,
+            MapBestResponse best,
             List<RecentGameResponse> recentGames,
-            List<WeakRegionResponse> weakRegions
+            List<WeakRegionResponse> weakRegions,
+            List<MapBadgeResponse> badges
     ) {
 
         public static MapDetailResponse from(MapDetail detail) {
@@ -186,8 +182,10 @@ public class StatsController {
                     totals.score().accuracyPercent(),
                     totals.bestPaceSeconds(),
                     totals.averagePaceSeconds(),
+                    detail.best() == null ? null : MapBestResponse.from(detail.best()),
                     detail.recentGames().stream().map(RecentGameResponse::from).toList(),
-                    detail.weakRegions().stream().map(WeakRegionResponse::from).toList()
+                    detail.weakRegions().stream().map(WeakRegionResponse::from).toList(),
+                    detail.badges().stream().map(MapBadgeResponse::from).toList()
             );
         }
     }
@@ -203,7 +201,7 @@ public class StatsController {
             Integer previousBestSeconds,
             Integer place,
             Integer players,
-            int streakWeeks,
+            int streakDays,
             List<String> newTrophies,
             List<String> missedRegions
     ) {
@@ -224,19 +222,14 @@ public class StatsController {
                     previous == null ? null : previous.durationSeconds(),
                     best == null ? null : best.place(),
                     best == null ? null : best.players(),
-                    result.streak().currentWeeks(),
+                    result.streak().currentDays(),
                     result.newTrophies().stream().map(Trophy::getTitle).toList(),
                     result.missedRegions()
             );
         }
     }
 
-    public record MapComparisonResponse(
-            long mapId,
-            String mapName,
-            MapBestResponse yours,
-            MapBestResponse theirs
-    ) {
+    public record MapComparisonResponse(long mapId, String mapName, MapBestResponse yours, MapBestResponse theirs) {
 
         public static MapComparisonResponse from(MapComparison comparison) {
             MapBest either = comparison.either();

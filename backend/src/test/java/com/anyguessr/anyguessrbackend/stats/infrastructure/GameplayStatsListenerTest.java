@@ -50,7 +50,12 @@ class GameplayStatsListenerTest {
         assertEquals(1, perfect.place());
         assertEquals(2, perfect.players());
         assertTrue(perfect.newTrophies().contains("Flawless"));
-        assertEquals(2, statsController.getUserStats(1).gamesPlayed());
+        assertEquals(2, statsController.getMapDetail(1, 1).gamesPlayed());
+        assertEquals(1, statsController.getUserStats(1).overallPlace());
+        assertEquals(2, statsController.getUserStats(2).overallPlace());
+        assertEquals(2, statsController.getUserStats(2).overallPlayers());
+        assertEquals(1, statsController.getMapDetail(1, 1).best().place());
+        assertTrue(statsController.getMapDetail(1, 1).badges().stream().filter(badge -> badge.title().equals("Flawless")).findFirst().orElseThrow().earned());
         assertNotNull(statsController.getUserStats(1).trophies().get(1).awardedAt());
         assertEquals(List.of(new WeakRegionResponse("France", 2, 1, "Germany")), statsController.getMapDetail(1, 1).weakRegions());
         assertEquals(2, statsController.compare(1, 2).get(0).theirs().place());
@@ -59,7 +64,7 @@ class GameplayStatsListenerTest {
 
         statsController.deleteUserStats(1);
 
-        assertEquals(0, statsController.getUserStats(1).gamesPlayed());
+        assertEquals(0, statsController.getMapDetail(1, 1).gamesPlayed());
         assertNull(statsController.getUserStats(1).trophies().get(1).awardedAt());
         assertEquals("player-two", statsController.getLeaderboard(1).get(0).username());
         assertEquals(4, jdbc.queryForObject("SELECT COUNT(*) FROM guesses", Integer.class));

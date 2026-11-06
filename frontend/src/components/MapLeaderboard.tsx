@@ -12,11 +12,11 @@ import {
 } from "../services/statsAPI";
 import {Popup} from "./ProfileStats";
 
-function score(best: MapBest | null) {
+export function score(best: MapBest | null) {
     return best === null ? "not played" : `${formatPercent(best.accuracyPercent)} · ${formatTime(best.durationSeconds)}`;
 }
 
-function verdict({yours, theirs}: MapComparison) {
+export function verdict({yours, theirs}: MapComparison) {
     if (yours === null || theirs === null) {
         return yours === null ? "Not played yet" : "Only you";
     }

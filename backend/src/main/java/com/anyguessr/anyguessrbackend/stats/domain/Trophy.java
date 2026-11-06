@@ -17,13 +17,13 @@ public enum Trophy {
     COMMITTED("Committed", "Finish 50 games", 50, Facts::gamesPlayed),
     VETERAN("Veteran", "Finish 100 games", 100, Facts::gamesPlayed),
     CARTOGRAPHER("Cartographer", "Go flawless on 3 different maps", 3, Facts::flawlessMaps),
-    ON_A_ROLL("On a roll", "Keep a 4-week streak", 4, Facts::bestStreakWeeks);
+    ON_A_ROLL("On a roll", "Keep a 7-day streak", 7, Facts::bestStreakDays);
 
     private static final int MIN_TARGETS = 3;
     private static final double HIGH_SCORE_PERCENT = 80.0;
     private static final double SPEEDY_SECONDS_PER_TARGET = 3.0;
 
-    public record Facts(int gamesPlayed, int flawlessMaps, int speedyGames, int bestHighScoreRun, int bestStreakWeeks) {
+    public record Facts(int gamesPlayed, int flawlessMaps, int speedyGames, int bestHighScoreRun, int bestStreakDays) {
 
         public static Facts from(List<GameRecord> finishedGames, Instant now) {
             List<GameRecord> counted = finishedGames.stream()
@@ -42,7 +42,7 @@ public enum Trophy {
                     (int) counted.stream().filter(game -> isFlawless(game.getScore())).map(GameRecord::getMapId).distinct().count(),
                     (int) counted.stream().filter(Facts::isSpeedy).count(),
                     bestRun,
-                    PlayStreak.from(finishedGames, now).bestWeeks());
+                    PlayStreak.from(finishedGames, now).bestDays());
         }
 
         private static boolean isSpeedy(GameRecord game) {

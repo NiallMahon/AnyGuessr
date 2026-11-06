@@ -72,18 +72,8 @@ public class JpaGameRecordRepository implements GameRecordRepository {
     }
 
     @Override
-    public PlayerTotals findTotalsForUser(UserId userId) {
-        return toTotals(userGames.findTotals(userId.value(), PlayerTotals.BEST_PACE_MIN_PERCENT));
-    }
-
-    @Override
     public PlayerTotals findTotalsOnMap(UserId userId, MapId mapId) {
         return toTotals(userGames.findTotalsOnMap(userId.value(), mapId.value(), PlayerTotals.BEST_PACE_MIN_PERCENT));
-    }
-
-    @Override
-    public List<FinishedGame> findRecentFinishedGames(UserId userId, int limit) {
-        return toFinishedGames(userGames.findRecentFinished(userId.value(), limit));
     }
 
     @Override
@@ -144,6 +134,11 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                         row.getPlace(),
                         row.getPlayers()))
                 .toList();
+    }
+
+    @Override
+    public Optional<OverallRank> findOverallRank(UserId userId) {
+        return userGames.findOverallRank(userId.value()).map(row -> new OverallRank(row.getPlace(), row.getPlayers()));
     }
 
     @Override

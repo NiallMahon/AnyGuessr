@@ -1,4 +1,4 @@
-// Fetches a player's stats, map detail, game results, comparisons and map leaderboards, deletes a player's stats, and formats stat values.
+// Fetches a player's stats, map detail, game results, comparisons and map leaderboards, deletes a player's stats, formats stat values, and holds the friends list stats compares against.
 const BASE = '/api/stats';
 
 export interface RecentGame {
@@ -39,17 +39,12 @@ export interface LeaderboardEntry {
 }
 
 export interface UserStats {
-    gamesPlayed: number;
-    correctGuesses: number;
-    incorrectGuesses: number;
-    accuracyPercent: number;
-    bestPaceSeconds: number | null;
-    averagePaceSeconds: number | null;
-    currentStreakWeeks: number;
-    bestStreakWeeks: number;
-    recentGames: RecentGame[];
+    currentStreakDays: number;
+    bestStreakDays: number;
     trophies: Trophy[];
     bestPerMap: MapBest[];
+    overallPlace: number | null;
+    overallPlayers: number | null;
 }
 
 export interface WeakRegion {
@@ -59,13 +54,21 @@ export interface WeakRegion {
     mixedUpWith: string | null;
 }
 
+export interface MapBadge {
+    title: string;
+    description: string;
+    earned: boolean;
+}
+
 export interface MapDetail {
     gamesPlayed: number;
     accuracyPercent: number;
     bestPaceSeconds: number | null;
     averagePaceSeconds: number | null;
+    best: MapBest | null;
     recentGames: RecentGame[];
     weakRegions: WeakRegion[];
+    badges: MapBadge[];
 }
 
 export interface GameResult {
@@ -79,7 +82,7 @@ export interface GameResult {
     previousBestSeconds: number | null;
     place: number | null;
     players: number | null;
-    streakWeeks: number;
+    streakDays: number;
     newTrophies: string[];
     missedRegions: string[];
 }
@@ -91,6 +94,15 @@ export interface MapComparison {
     theirs: MapBest | null;
 }
 
+export interface Friend {
+    userId: number;
+    name: string;
+    location: string;
+    status: string;
+}
+
+export const FRIENDS: Friend[] = [];
+
 export function formatPercent(percent: number) {
     return `${Math.round(percent * 10) / 10}%`;
 }
@@ -101,6 +113,10 @@ export function formatTime(seconds: number | null) {
     }
     const whole = Math.round(seconds);
     return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+export function shortDate(iso: string) {
+    return new Date(iso).toLocaleDateString(undefined, {day: "numeric", month: "short"});
 }
 
 async function get<T>(path: string): Promise<T> {

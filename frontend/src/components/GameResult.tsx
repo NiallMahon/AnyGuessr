@@ -45,7 +45,7 @@ function GameResult({sessionId}: {sessionId: string}) {
                 )}
                 <li>
                     <span className="stats-row-main">Streak</span>
-                    <span>{result.streakWeeks} {result.streakWeeks === 1 ? "week" : "weeks"}</span>
+                    <span>{result.streakDays} {result.streakDays === 1 ? "day" : "days"}</span>
                 </li>
                 {result.missedRegions.length > 0 && (
                     <li>

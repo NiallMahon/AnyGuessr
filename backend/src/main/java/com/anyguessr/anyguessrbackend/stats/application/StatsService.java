@@ -8,8 +8,10 @@ import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.Finished
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.FirstGuess;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.LeaderboardEntry;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.MapBest;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.OverallRank;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.PlayerTotals;
 import com.anyguessr.anyguessrbackend.stats.domain.GameSessionId;
+import com.anyguessr.anyguessrbackend.stats.domain.MapBadge;
 import com.anyguessr.anyguessrbackend.stats.domain.MapId;
 import com.anyguessr.anyguessrbackend.stats.domain.PlayStreak;
 import com.anyguessr.anyguessrbackend.stats.domain.Score;
@@ -31,26 +33,24 @@ import java.util.stream.Stream;
 
 public class StatsService {
 
-    public record TrophyStatus(
-            Trophy trophy,
-            Instant awardedAt,
-            int progress
-    ) {
-    }
+    public record TrophyStatus(Trophy trophy, Instant awardedAt, int progress) {}
+
+    public record BadgeStatus(MapBadge badge, boolean earned) {}
 
     public record UserStats(
-            PlayerTotals totals,
-            List<FinishedGame> recentGames,
             List<TrophyStatus> trophies,
             List<MapBest> bestPerMap,
-            PlayStreak streak
+            PlayStreak streak,
+            OverallRank overallRank
     ) {
     }
 
     public record MapDetail(
             PlayerTotals totals,
+            MapBest best,
             List<FinishedGame> recentGames,
-            List<WeakRegion> weakRegions
+            List<WeakRegion> weakRegions,
+            List<BadgeStatus> badges
     ) {
     }
 
@@ -68,17 +68,13 @@ public class StatsService {
         }
     }
 
-    public record MapComparison(
-            MapBest yours,
-            MapBest theirs
-    ) {
+    public record MapComparison(MapBest yours, MapBest theirs) {
 
         public MapBest either() {
             return yours != null ? yours : theirs;
         }
     }
 
-    private static final int RECENT_GAME_COUNT = 10;
     private static final int MAP_GAME_COUNT = 20;
     private static final int LEADERBOARD_SIZE = 100;
 
@@ -117,19 +113,25 @@ public class StatsService {
         List<GameRecord> games = gameRecordRepository.findFinishedGames(userId);
 
         return new UserStats(
-                gameRecordRepository.findTotalsForUser(userId),
-                gameRecordRepository.findRecentFinishedGames(userId, RECENT_GAME_COUNT),
                 trophyStatuses(userId, Trophy.Facts.from(games, now)),
                 gameRecordRepository.findBestPerMap(userId),
-                PlayStreak.from(games, now)
+                PlayStreak.from(games, now),
+                gameRecordRepository.findOverallRank(userId).orElse(null)
         );
     }
 
     public MapDetail getMapDetail(UserId userId, MapId mapId) {
+        PlayerTotals totals = gameRecordRepository.findTotalsOnMap(userId, mapId);
+        MapBest best = bestByMap(userId).get(mapId);
+
         return new MapDetail(
-                gameRecordRepository.findTotalsOnMap(userId, mapId),
+                totals,
+                best,
                 gameRecordRepository.findRecentFinishedGamesOnMap(userId, mapId, MAP_GAME_COUNT),
-                WeakRegion.rank(gameRecordRepository.findRecentFirstGuesses(userId, mapId, MAP_GAME_COUNT))
+                WeakRegion.rank(gameRecordRepository.findRecentFirstGuesses(userId, mapId, MAP_GAME_COUNT)),
+                Arrays.stream(MapBadge.values())
+                        .map(badge -> new BadgeStatus(badge, badge.isEarned(totals.gamesPlayed(), best)))
+                        .toList()
         );
     }
 

@@ -6,14 +6,7 @@ import java.time.Instant;
 
 public class GameRecord {
 
-    public record Guess(
-            RegionId target,
-            RegionId selected,
-            boolean correct,
-            Double clickedLat,
-            Double clickedLng
-    ) {
-    }
+    public record Guess(RegionId target, RegionId selected, boolean correct, Double clickedLat, Double clickedLng) {}
 
     public static class GameAlreadyFinishedException extends RuntimeException {
 
@@ -40,14 +33,6 @@ public class GameRecord {
     ) {
         if (sessionId == null || userId == null || mapId == null || startedAt == null) {
             throw new IllegalArgumentException("Session, user, map and start time must not be null");
-        }
-
-        if (finishedAt != null && finishedAt.isBefore(startedAt)) {
-            throw new IllegalArgumentException("A game cannot finish before it started");
-        }
-
-        if ((finishedAt == null) != (score == null)) {
-            throw new IllegalArgumentException("A game has a score only once it has finished");
         }
 
         this.sessionId = sessionId;
