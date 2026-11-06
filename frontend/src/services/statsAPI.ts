@@ -1,48 +1,28 @@
-/*
-frontend for game stats. game files call these functions to send data to the backend for
-storage/calculating results
-
-recordGameStart   records gameId
-recordRegionClick on every click (targetregion, clickedregion, lat/lng of click, timestamp)
-recordGameEnd     sends data to calculate final score in backend
-*/
-
+// Fetches a player's stats for the profile page.
 const BASE = '/api/stats';
 
-export interface ClickPayload {
-    targetRegionId: number;
-    selectedRegionId: number | null;
-    lat: number;
-    lng: number;
-}
-
-export interface GameEndResult {
+export interface RecentGame {
+    sessionId: string;
+    mapName: string;
+    finishedAt: string;
     correct: number;
     incorrect: number;
-    durationSeconds: number;
     accuracyPercent: number;
+    durationSeconds: number;
 }
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${BASE}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`${path} failed: ${res.status}`);
-    const text = await res.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+export interface UserStats {
+    gamesPlayed: number;
+    correctGuesses: number;
+    incorrectGuesses: number;
+    accuracyPercent: number;
+    bestTimeSeconds: number | null;
+    averageTimeSeconds: number | null;
+    recentGames: RecentGame[];
 }
 
-export async function recordGameStart(userId: number, mapId: number): Promise<number> {
-    const res = await post<{ gameId: number }>('/games', { userId, mapId });
-    return res.gameId;
-}
-
-export function recordRegionClick(gameId: number, click: ClickPayload, clickedAt: Date = new Date()): Promise<void> {
-    return post<void>(`/games/${gameId}/clicks`, { ...click, clickedAt });
-}
-
-export function recordGameEnd(gameId: number): Promise<GameEndResult> {
-    return post<GameEndResult>(`/games/${gameId}/end`);
+export async function fetchUserStats(userId: number): Promise<UserStats> {
+    const res = await fetch(`${BASE}/users/${userId}`);
+    if (!res.ok) throw new Error(`/users/${userId} failed: ${res.status}`);
+    return (await res.json()) as UserStats;
 }

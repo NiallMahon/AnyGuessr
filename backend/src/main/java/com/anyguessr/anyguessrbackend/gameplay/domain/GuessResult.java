@@ -5,6 +5,7 @@ public record GuessResult(
         boolean correctionRequired,
         RegionId selectedRegionId,
         RegionId targetRegionId,
+        RegionId currentTargetRegionId,
         int correctAnswers,
         int answeredTargets,
         double accuracy,

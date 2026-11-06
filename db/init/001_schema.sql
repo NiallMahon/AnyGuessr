@@ -125,6 +125,7 @@ CREATE TABLE regions (
 
 CREATE TABLE user_games (
                             game_id            bigint     NOT NULL AUTO_INCREMENT,
+                            session_id         varchar(36) NOT NULL,
                             user_id            bigint     NOT NULL,
                             map_id             bigint     NOT NULL,
                             started_at         timestamp  NOT NULL,
@@ -133,6 +134,7 @@ CREATE TABLE user_games (
                             correct_guesses    int        NOT NULL,
                             incorrect_guesses  int        NOT NULL,
                             PRIMARY KEY (game_id),
+                            UNIQUE KEY uq_user_games_session (session_id),
                             UNIQUE KEY uq_user_games_game_map (game_id, map_id),
                             CONSTRAINT fk_user_games_user FOREIGN KEY (user_id)
                                 REFERENCES users (user_id) ON DELETE CASCADE,
@@ -146,8 +148,9 @@ CREATE TABLE guesses (
                          map_id              bigint     NOT NULL,
                          target_region_id    bigint     NOT NULL,
                          selected_region_id  bigint     NULL,
-                         clicked_lat         double     NOT NULL,
-                         clicked_lng         double     NOT NULL,
+                         correct             boolean    NOT NULL,
+                         clicked_lat         double     NULL,
+                         clicked_lng         double     NULL,
                          guessed_at          timestamp  NOT NULL,
                          PRIMARY KEY (game_id, attempt_number),
                          CONSTRAINT fk_guesses_game FOREIGN KEY (game_id, map_id)

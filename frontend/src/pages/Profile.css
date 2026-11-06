@@ -16,22 +16,8 @@
     border-radius: 8px;
     background-color: var(--bg);
 }
-.profile-stats {
-    display: flex;
-    width: 100%;
+.profile-stats-status {
     margin-top: 24px;
-    padding: 20px;
-
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-sizing: border-box;
-}
-
-.profile-stats div {
-    flex: 1;
-    text-align: center;
-    font-size: 16px;
-    color: var(--text);
 }
 .profile-avatar {
     width: 110px;
@@ -94,34 +80,4 @@
 
 .profile-edit:hover {
     background-color: var(--border);
-} 
-
-.profile-recent-games{
-    width: 100%;
-    min-height: 300px;
-    padding: 24px;
-
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-sizing: border-box;
 }
-
-.recent-games h2 {
-    margin: 0 0 20px;
-
-}
-
-.recent-games-list {
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-}
-
-.game-card {
-    min-height: 180px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    
-}
-

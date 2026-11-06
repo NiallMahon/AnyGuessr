@@ -1,14 +1,15 @@
 import "./Profile.css";
 import {useEffect, useState} from "react";
+import {fetchUserStats, type UserStats} from "../services/statsAPI";
+import ProfileStats from "../components/ProfileStats";
 
 type UserProfile = {
     id: number;
     name: string;
     location: string;
     initials: string;
-    gamesPlayed: number; 
+    gamesPlayed: number;
 };
-
 
 //Simple profile page for the user, with a profile picture, name, location, and stats. Also would include recent games, comments, and friends
 function Profile() {
@@ -45,6 +46,24 @@ function Profile() {
         fetchProfile();
     },[userId]);
 
+    const [stats, setStats] = useState<UserStats | null>(null);
+    const [statsError, setStatsError] = useState<string | null>(null);
+    useEffect(() => {
+        async function fetchStats() {
+            if (!userId) {
+                return;
+            }
+
+            try {
+                setStats(await fetchUserStats(Number(userId)));
+            } catch {
+                setStatsError("Could not load stats");
+            }
+        }
+
+        fetchStats();
+    }, [userId]);
+
     if (loading) {
         return <div>Loading...</div>;
     }
@@ -71,23 +90,14 @@ function Profile() {
                 Edit Profile
                 </button>
             </section>
-            {/* Profile stats section with trophies, high score, games played, games won, and win rate */}
-            <section className="profile-stats">   
-                <div>Games Played: {profile?.gamesPlayed}</div>
-            </section>
+            {stats ? (
+                <ProfileStats stats={stats}/>
+            ) : (
+                <p className="profile-stats-status">{statsError ?? "Loading stats..."}</p>
+            )}
             {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
             <div className="profile-layout">
                 <div className="profile-main-content">
-                    <section className="profile-recent-games">
-                        <h2>Recent Games</h2>
-
-                            <div className="recent-games-list">
-                            <div className="game-card">Game 1</div>
-                            <div className="game-card">Game 2</div>
-                            <div className="game-card">Game 3</div>
-                </div>
-            </section>
-            
             <section className="profile-comments">
                 <h2>Comments</h2>
                 <p>CS.com: This guy is quite litterally the worst player to touch the game</p>
