@@ -1,10 +1,11 @@
 package com.anyguessr.anyguessrbackend.identity.domain;
 
+import com.anyguessr.anyguessrbackend.identity.infrastructure.persistence.entity.UserEntity;
+
 public record User(
     Long id,
-    String email,
-    String password,
     String username,
-    String location
-) {
+    String email,
+    String passwordHash
+){   
 }

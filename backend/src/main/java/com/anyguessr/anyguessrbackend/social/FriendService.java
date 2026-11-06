@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.identity.social;
+package com.anyguessr.anyguessrbackend.social;
 
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ public class FriendService {
         friends.add(friend);
         return friend;
     }
-
+    
     public void deleteFriend(Long id) {
         friends.removeIf(friend -> friend.getId().equals(id));
     }

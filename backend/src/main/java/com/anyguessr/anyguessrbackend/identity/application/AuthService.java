@@ -9,9 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+
+
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,37 +22,42 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    // ID 1 belongs to the seeded account.
-    private final AtomicLong nextUserId = new AtomicLong(2);
+    
+    
 
     public AuthService(
             UserRepository userRepository,
-            ProfileRepository profileRepository
+            ProfileRepository profileRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public AuthResponse register(RegisterRequest request) {
         validateRegisterRequest(request);
 
-        if (userRepository.findByEmail(request.email()).isPresent()) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+
+        if (userRepository.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "An account with this email already exists"
             );
         }
 
-        Long userId = nextUserId.getAndIncrement();
 
         User user = new User(
-                userId,   
-                request.email().trim().toLowerCase(Locale.ROOT),
-                request.password(),
+                null,
                 request.username().trim(),
-                request.location().trim()
+                email,
+                passwordEncoder.encode(request.password())
         );
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.id();
 
         Profile profile = new Profile(
                 userId,
@@ -59,7 +67,6 @@ public class AuthService {
                 0   
         );
 
-        userRepository.save(user);
         profileRepository.save(profile);
 
         return new AuthResponse(userId);
@@ -79,7 +86,7 @@ public class AuthService {
                         "Invalid identifier or password"
                 ));
 
-        if (!user.password().equals(request.password())) {
+        if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Invalid email or password"
@@ -113,4 +120,6 @@ public class AuthService {
                         .toUpperCase(Locale.ROOT))
                 .collect(Collectors.joining());
     }
+
+    
 }

@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.identity.social;
+package com.anyguessr.anyguessrbackend.social;
 
 import org.springframework.web.bind.annotation.*;
 import java.util.List;

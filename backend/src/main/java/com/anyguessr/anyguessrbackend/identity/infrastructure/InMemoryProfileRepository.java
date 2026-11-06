@@ -4,7 +4,6 @@ import org.springframework.stereotype.Repository;
 
 import com.anyguessr.anyguessrbackend.identity.domain.Profile;
 import com.anyguessr.anyguessrbackend.identity.domain.ProfileRepository;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
