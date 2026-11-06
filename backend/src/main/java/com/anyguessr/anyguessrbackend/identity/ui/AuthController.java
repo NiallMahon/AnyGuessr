@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @RestController
-//RequestMapping("/auth")
+@RequestMapping("/auth")
 @CrossOrigin(origins = {
         "http://localhost:5173",
         "http://localhost:5174"

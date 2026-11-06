@@ -19,6 +19,7 @@ function Register() {
     const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError("");
+        console.log("Register submit fired");
 
     if (password !== confirmPassword) {
         setError("Passwords do not match");
