@@ -1,11 +1,7 @@
 // A finished quiz: score against your best, map place, streak, new trophies and missed regions.
 import "./ProfileStats.css";
 import {useEffect, useState} from "react";
-import {fetchGameResult, type GameResult as Result} from "../services/statsAPI";
-import {formatPercent, formatTime} from "./ProfileStats";
-
-const TRIES = 5;
-const RETRY_MS = 300;
+import {fetchGameResult, formatPercent, formatTime, type GameResult as Result} from "../services/statsAPI";
 
 function headline(result: Result) {
     if (result.previousBestPercent === null) {
@@ -23,23 +19,7 @@ function GameResult({sessionId}: {sessionId: string}) {
     const [result, setResult] = useState<Result | null>(null);
 
     useEffect(() => {
-        let active = true;
-
-        async function load() {
-            for (let tries = 0; tries < TRIES && active; tries++) {
-                await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
-                const found = await fetchGameResult(sessionId).catch(() => null);
-                if (found && active) {
-                    setResult(found);
-                    return;
-                }
-            }
-        }
-
-        void load();
-        return () => {
-            active = false;
-        };
+        fetchGameResult(sessionId).then(setResult).catch(() => setResult(null));
     }, [sessionId]);
 
     if (result === null) {

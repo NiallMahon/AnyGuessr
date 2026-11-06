@@ -14,6 +14,8 @@ public interface GameRecordRepository {
             Double bestPaceSeconds,
             Double averagePaceSeconds
     ) {
+
+        public static final int BEST_PACE_MIN_PERCENT = 50;
     }
 
     record FirstGuess(
@@ -52,7 +54,7 @@ public interface GameRecordRepository {
             int place,
             UserId userId,
             String username,
-            Score score,
+            double accuracyPercent,
             int durationSeconds
     ) {
     }
@@ -61,15 +63,7 @@ public interface GameRecordRepository {
 
     void add(GameRecord gameRecord);
 
-    void addGuess(
-            GameSessionId sessionId,
-            RegionId target,
-            RegionId selected,
-            boolean correct,
-            Double clickedLat,
-            Double clickedLng,
-            Instant guessedAt
-    );
+    void addGuess(GameSessionId sessionId, GameRecord.Guess guess, Instant guessedAt);
 
     void markFinished(GameRecord gameRecord);
 

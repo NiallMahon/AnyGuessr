@@ -5,9 +5,9 @@ import com.anyguessr.anyguessrbackend.stats.application.StatsService;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.GameResult;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.MapComparison;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.MapDetail;
+import com.anyguessr.anyguessrbackend.stats.application.StatsService.TrophyStatus;
 import com.anyguessr.anyguessrbackend.stats.application.StatsService.UserStats;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecord;
-import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.EarnedTrophy;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.FinishedGame;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.LeaderboardEntry;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.MapBest;
@@ -30,10 +30,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/stats")
@@ -70,12 +67,26 @@ public class StatsController {
             int progress,
             int goal
     ) {
+
+        public static TrophyResponse from(TrophyStatus status) {
+            Trophy trophy = status.trophy();
+
+            return new TrophyResponse(
+                    trophy.name(),
+                    trophy.getTitle(),
+                    trophy.getDescription(),
+                    status.awardedAt(),
+                    status.progress(),
+                    trophy.getGoal()
+            );
+        }
     }
 
     public record MapBestResponse(
             long mapId,
             String mapName,
             double accuracyPercent,
+            boolean flawless,
             int durationSeconds,
             int place,
             int players
@@ -86,6 +97,7 @@ public class StatsController {
                     best.mapId().value(),
                     best.mapName(),
                     best.score().accuracyPercent(),
+                    Trophy.isFlawless(best.score()),
                     best.durationSeconds(),
                     best.place(),
                     best.players()
@@ -106,7 +118,7 @@ public class StatsController {
                     entry.place(),
                     entry.userId().value(),
                     entry.username(),
-                    entry.score().accuracyPercent(),
+                    entry.accuracyPercent(),
                     entry.durationSeconds()
             );
         }
@@ -128,8 +140,6 @@ public class StatsController {
 
         public static UserStatsResponse from(UserStats stats) {
             PlayerTotals totals = stats.totals();
-            Map<Trophy, Instant> earned = stats.trophies().stream()
-                    .collect(Collectors.toMap(EarnedTrophy::trophy, EarnedTrophy::awardedAt));
 
             return new UserStatsResponse(
                     totals.gamesPlayed(),
@@ -141,13 +151,21 @@ public class StatsController {
                     stats.streak().currentWeeks(),
                     stats.streak().bestWeeks(),
                     stats.recentGames().stream().map(RecentGameResponse::from).toList(),
-                    Arrays.stream(Trophy.values())
-                            .map(trophy -> new TrophyResponse(
-                                    trophy.name(), trophy.getTitle(), trophy.getDescription(), earned.get(trophy),
-                                    trophy.progress(stats.trophyFacts()), trophy.getGoal()))
-                            .toList(),
+                    stats.trophies().stream().map(TrophyResponse::from).toList(),
                     stats.bestPerMap().stream().map(MapBestResponse::from).toList()
             );
+        }
+    }
+
+    public record WeakRegionResponse(
+            String name,
+            int attempts,
+            int correct,
+            String mixedUpWith
+    ) {
+
+        public static WeakRegionResponse from(WeakRegion region) {
+            return new WeakRegionResponse(region.name(), region.attempts(), region.correct(), region.mixedUpWith());
         }
     }
 
@@ -157,7 +175,7 @@ public class StatsController {
             Double bestPaceSeconds,
             Double averagePaceSeconds,
             List<RecentGameResponse> recentGames,
-            List<WeakRegion> weakRegions
+            List<WeakRegionResponse> weakRegions
     ) {
 
         public static MapDetailResponse from(MapDetail detail) {
@@ -169,7 +187,7 @@ public class StatsController {
                     totals.bestPaceSeconds(),
                     totals.averagePaceSeconds(),
                     detail.recentGames().stream().map(RecentGameResponse::from).toList(),
-                    detail.weakRegions()
+                    detail.weakRegions().stream().map(WeakRegionResponse::from).toList()
             );
         }
     }
@@ -197,12 +215,12 @@ public class StatsController {
 
             return new GameResultResponse(
                     game.getMapId().value(),
-                    game.getScore().orElseThrow().correct(),
-                    game.getScore().orElseThrow().incorrect(),
-                    game.getScore().orElseThrow().accuracyPercent(),
+                    game.getScore().correct(),
+                    game.getScore().incorrect(),
+                    game.getScore().accuracyPercent(),
                     game.durationSeconds(),
                     result.isNewBest(),
-                    previous == null ? null : previous.getScore().orElseThrow().accuracyPercent(),
+                    previous == null ? null : previous.getScore().accuracyPercent(),
                     previous == null ? null : previous.durationSeconds(),
                     best == null ? null : best.place(),
                     best == null ? null : best.players(),
@@ -221,11 +239,11 @@ public class StatsController {
     ) {
 
         public static MapComparisonResponse from(MapComparison comparison) {
-            MapBest any = comparison.yours() != null ? comparison.yours() : comparison.theirs();
+            MapBest either = comparison.either();
 
             return new MapComparisonResponse(
-                    any.mapId().value(),
-                    any.mapName(),
+                    either.mapId().value(),
+                    either.mapName(),
                     comparison.yours() == null ? null : MapBestResponse.from(comparison.yours()),
                     comparison.theirs() == null ? null : MapBestResponse.from(comparison.theirs())
             );

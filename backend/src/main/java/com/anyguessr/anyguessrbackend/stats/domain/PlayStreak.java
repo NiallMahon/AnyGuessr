@@ -11,7 +11,7 @@ public record PlayStreak(int currentWeeks, int bestWeeks) {
 
     public static PlayStreak from(List<GameRecord> finishedGames, Instant now) {
         List<LocalDate> weeks = finishedGames.stream()
-                .map(game -> weekOf(game.getFinishedAt().orElseThrow()))
+                .map(game -> weekOf(game.getFinishedAt()))
                 .distinct()
                 .sorted()
                 .toList();

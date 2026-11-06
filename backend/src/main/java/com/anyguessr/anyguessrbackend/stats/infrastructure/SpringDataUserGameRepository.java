@@ -16,7 +16,7 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
     String TOTALS = "SELECT COUNT(g) AS gamesPlayed, "
             + "COALESCE(SUM(g.correctGuesses), 0) AS correct, "
             + "COALESCE(SUM(g.incorrectGuesses), 0) AS incorrect, "
-            + "MIN(CASE WHEN g.correctGuesses * 2 >= g.correctGuesses + g.incorrectGuesses "
+            + "MIN(CASE WHEN g.correctGuesses * 100 >= :minPercent * (g.correctGuesses + g.incorrectGuesses) "
             + "THEN g.duration * 1.0 / NULLIF(g.correctGuesses + g.incorrectGuesses, 0) END) AS bestPace, "
             + "SUM(g.duration) * 1.0 / NULLIF(SUM(g.correctGuesses + g.incorrectGuesses), 0) AS averagePace "
             + "FROM UserGameEntity g WHERE g.userId = :userId AND g.finishedAt IS NOT NULL";
@@ -30,11 +30,11 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
     String NEWEST_FIRST = "ORDER BY ug.finished_at DESC, ug.game_id DESC LIMIT :limit";
 
     String FIRST_GUESSES = "SELECT t.name AS target, s.name AS selected, CASE WHEN g.correct THEN 1 ELSE 0 END AS correct "
-            + "FROM guesses g JOIN regions t ON t.region_id = g.target_region_id "
-            + "JOIN regions s ON s.region_id = g.selected_region_id ";
+            + "FROM (SELECT a.target_region_id, a.selected_region_id, a.correct, ROW_NUMBER() OVER "
+            + "(PARTITION BY a.game_id, a.target_region_id ORDER BY a.attempt_number) AS try_number FROM guesses a ";
 
-    String IS_FIRST_ATTEMPT = "g.attempt_number = (SELECT MIN(a.attempt_number) FROM guesses a "
-            + "WHERE a.game_id = g.game_id AND a.target_region_id = g.target_region_id)";
+    String FIRST_TRY_ONLY = ") g JOIN regions t ON t.region_id = g.target_region_id "
+            + "JOIN regions s ON s.region_id = g.selected_region_id WHERE g.try_number = 1";
 
     interface TotalsRow {
         int getGamesPlayed();
@@ -73,8 +73,7 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
         int getPlace();
         long getUserId();
         String getUsername();
-        int getCorrectGuesses();
-        int getIncorrectGuesses();
+        double getAccuracy();
         int getDuration();
     }
 
@@ -103,7 +102,7 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             LocalDateTime guessedAt
     );
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE UserGameEntity g SET g.finishedAt = :finishedAt, g.duration = :duration, "
             + "g.correctGuesses = :correct, g.incorrectGuesses = :incorrect "
@@ -111,10 +110,10 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
     void markFinished(String sessionId, Instant finishedAt, int duration, int correct, int incorrect);
 
     @Query(TOTALS)
-    TotalsRow findTotals(long userId);
+    TotalsRow findTotals(long userId, int minPercent);
 
     @Query(TOTALS + " AND g.mapId = :mapId")
-    TotalsRow findTotalsOnMap(long userId, long mapId);
+    TotalsRow findTotalsOnMap(long userId, long mapId, int minPercent);
 
     @Query(value = RECENT + NEWEST_FIRST, nativeQuery = true)
     List<RecentGameRow> findRecentFinished(long userId, int limit);
@@ -126,14 +125,14 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             + "ORDER BY g.finishedAt, g.gameId")
     List<UserGameEntity> findFinished(long userId);
 
-    @Query(value = FIRST_GUESSES + "JOIN user_games ug ON ug.game_id = g.game_id "
-            + "WHERE ug.session_id = :sessionId AND " + IS_FIRST_ATTEMPT,
+    @Query(value = FIRST_GUESSES + "WHERE a.game_id = (SELECT game_id FROM user_games WHERE session_id = :sessionId)"
+            + FIRST_TRY_ONLY,
             nativeQuery = true)
     List<FirstGuessRow> findFirstGuesses(String sessionId);
 
     @Query(value = FIRST_GUESSES + "JOIN (SELECT game_id FROM user_games WHERE user_id = :userId AND map_id = :mapId "
-            + "ORDER BY started_at DESC, game_id DESC LIMIT :games) ug ON ug.game_id = g.game_id "
-            + "WHERE " + IS_FIRST_ATTEMPT,
+            + "AND finished_at IS NOT NULL ORDER BY finished_at DESC, game_id DESC LIMIT :games) ug "
+            + "ON ug.game_id = a.game_id" + FIRST_TRY_ONLY,
             nativeQuery = true)
     List<FirstGuessRow> findRecentFirstGuesses(long userId, long mapId, int games);
 
@@ -166,19 +165,18 @@ public interface SpringDataUserGameRepository extends JpaRepository<UserGameEnti
             + "g.incorrect_guesses AS incorrectGuesses, r.duration AS duration, r.place AS place, r.players AS players "
             + "FROM (SELECT l.map_id, l.user_id, l.game_id, l.duration, "
             + "RANK() OVER (PARTITION BY l.map_id ORDER BY l.accuracy DESC, l.duration) AS place, "
-            + "COUNT(*) OVER (PARTITION BY l.map_id) AS players FROM leaderboard l) r "
+            + "COUNT(*) OVER (PARTITION BY l.map_id) AS players FROM leaderboard l "
+            + "WHERE l.map_id IN (SELECT map_id FROM leaderboard WHERE user_id = :userId)) r "
             + "JOIN map_data m ON m.map_id = r.map_id JOIN user_games g ON g.game_id = r.game_id "
             + "WHERE r.user_id = :userId ORDER BY m.map_name",
             nativeQuery = true)
     List<MapBestRow> findBestPerMap(long userId);
 
-    @Query(value = "SELECT r.place AS place, r.user_id AS userId, u.username AS username, "
-            + "g.correct_guesses AS correctGuesses, g.incorrect_guesses AS incorrectGuesses, r.duration AS duration "
-            + "FROM (SELECT l.user_id, l.game_id, l.duration, "
-            + "RANK() OVER (ORDER BY l.accuracy DESC, l.duration) AS place "
-            + "FROM leaderboard l WHERE l.map_id = :mapId) r "
-            + "JOIN users u ON u.user_id = r.user_id JOIN user_games g ON g.game_id = r.game_id "
-            + "ORDER BY r.place, u.username LIMIT :limit",
+    @Query(value = "SELECT RANK() OVER (ORDER BY t.accuracy DESC, t.duration) AS place, t.user_id AS userId, "
+            + "u.username AS username, t.accuracy AS accuracy, t.duration AS duration "
+            + "FROM (SELECT l.user_id, l.accuracy, l.duration FROM leaderboard l WHERE l.map_id = :mapId "
+            + "ORDER BY l.accuracy DESC, l.duration LIMIT :limit) t "
+            + "JOIN users u ON u.user_id = t.user_id ORDER BY place, u.username",
             nativeQuery = true)
     List<LeaderboardRow> findLeaderboard(long mapId, int limit);
 

@@ -21,7 +21,7 @@ class GameRecordTest {
         game.finish(start.plusSeconds(95), new Score(2, 1));
 
         assertEquals(95, game.durationSeconds());
-        assertEquals(66.67, game.getScore().orElseThrow().accuracyPercent(), 0.01);
+        assertEquals(66.67, game.getScore().accuracyPercent(), 0.01);
         assertThrows(GameRecord.GameAlreadyFinishedException.class,
                 () -> game.finish(start.plusSeconds(99), new Score(2, 1)));
     }

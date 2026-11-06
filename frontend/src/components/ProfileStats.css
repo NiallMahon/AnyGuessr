@@ -309,12 +309,6 @@
     text-align: left;
 }
 
-.game-result-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-}
-
 .leaderboard-place {
     width: 32px;
     font-variant-numeric: tabular-nums;

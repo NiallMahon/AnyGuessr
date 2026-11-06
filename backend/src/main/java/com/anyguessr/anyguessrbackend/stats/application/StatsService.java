@@ -12,7 +12,6 @@ import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.PlayerTo
 import com.anyguessr.anyguessrbackend.stats.domain.GameSessionId;
 import com.anyguessr.anyguessrbackend.stats.domain.MapId;
 import com.anyguessr.anyguessrbackend.stats.domain.PlayStreak;
-import com.anyguessr.anyguessrbackend.stats.domain.RegionId;
 import com.anyguessr.anyguessrbackend.stats.domain.Score;
 import com.anyguessr.anyguessrbackend.stats.domain.Trophy;
 import com.anyguessr.anyguessrbackend.stats.domain.UserId;
@@ -20,6 +19,8 @@ import com.anyguessr.anyguessrbackend.stats.domain.WeakRegion;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,13 +31,19 @@ import java.util.stream.Stream;
 
 public class StatsService {
 
+    public record TrophyStatus(
+            Trophy trophy,
+            Instant awardedAt,
+            int progress
+    ) {
+    }
+
     public record UserStats(
             PlayerTotals totals,
             List<FinishedGame> recentGames,
-            List<EarnedTrophy> trophies,
+            List<TrophyStatus> trophies,
             List<MapBest> bestPerMap,
-            PlayStreak streak,
-            Trophy.Facts trophyFacts
+            PlayStreak streak
     ) {
     }
 
@@ -65,6 +72,10 @@ public class StatsService {
             MapBest yours,
             MapBest theirs
     ) {
+
+        public MapBest either() {
+            return yours != null ? yours : theirs;
+        }
     }
 
     private static final int RECENT_GAME_COUNT = 10;
@@ -87,15 +98,8 @@ public class StatsService {
         gameRecordRepository.add(GameRecord.start(sessionId, userId, mapId, clock.instant()));
     }
 
-    public void recordGuess(
-            GameSessionId sessionId,
-            RegionId target,
-            RegionId selected,
-            boolean correct,
-            Double clickedLat,
-            Double clickedLng
-    ) {
-        gameRecordRepository.addGuess(sessionId, target, selected, correct, clickedLat, clickedLng, clock.instant());
+    public void recordGuess(GameSessionId sessionId, GameRecord.Guess guess) {
+        gameRecordRepository.addGuess(sessionId, guess, clock.instant());
     }
 
     public void finishGame(GameSessionId sessionId, Score score) {
@@ -115,10 +119,9 @@ public class StatsService {
         return new UserStats(
                 gameRecordRepository.findTotalsForUser(userId),
                 gameRecordRepository.findRecentFinishedGames(userId, RECENT_GAME_COUNT),
-                gameRecordRepository.findTrophies(userId),
+                trophyStatuses(userId, Trophy.Facts.from(games, now)),
                 gameRecordRepository.findBestPerMap(userId),
-                PlayStreak.from(games, now),
-                Trophy.Facts.from(games, now)
+                PlayStreak.from(games, now)
         );
     }
 
@@ -143,6 +146,7 @@ public class StatsService {
         return Stream.concat(yours.keySet().stream(), theirs.keySet().stream())
                 .distinct()
                 .map(mapId -> new MapComparison(yours.get(mapId), theirs.get(mapId)))
+                .sorted(Comparator.comparing(comparison -> comparison.either().mapName()))
                 .toList();
     }
 
@@ -152,6 +156,15 @@ public class StatsService {
 
     public void deleteUserStats(UserId userId) {
         gameRecordRepository.deleteAllForUser(userId);
+    }
+
+    private List<TrophyStatus> trophyStatuses(UserId userId, Trophy.Facts facts) {
+        Map<Trophy, Instant> earned = gameRecordRepository.findTrophies(userId).stream()
+                .collect(Collectors.toMap(EarnedTrophy::trophy, EarnedTrophy::awardedAt));
+
+        return Arrays.stream(Trophy.values())
+                .map(trophy -> new TrophyStatus(trophy, earned.get(trophy), trophy.progress(facts)))
+                .toList();
     }
 
     private GameResult resultOf(GameRecord game) {

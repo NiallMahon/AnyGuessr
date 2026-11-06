@@ -4,24 +4,14 @@ import {type ReactNode, useEffect, useRef, useState} from "react";
 import {
     deleteUserStats,
     fetchMapDetail,
+    formatPercent,
+    formatTime,
     type MapBest,
     type MapDetail,
     type RecentGame,
     type Trophy,
     type UserStats
 } from "../services/statsAPI";
-
-export function formatPercent(percent: number) {
-    return `${Math.round(percent * 10) / 10}%`;
-}
-
-export function formatTime(seconds: number | null) {
-    if (seconds === null) {
-        return "-";
-    }
-    const whole = Math.round(seconds);
-    return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
 
 function formatPace(seconds: number | null) {
     return seconds === null ? "-" : `${seconds.toFixed(1)}s`;
@@ -217,7 +207,7 @@ function BestPerMap({maps, userId}: {maps: MapBest[]; userId: number}) {
                                 </button>
                                 <span>{formatPercent(map.accuracyPercent)} · {formatTime(map.durationSeconds)}</span>
                             </div>
-                            {map.accuracyPercent === 100 && <span className="trophy-badge">Flawless</span>}
+                            {map.flawless && <span className="trophy-badge">Flawless</span>}
                             <span>#{map.place} of {map.players}</span>
                         </li>
                     ))}
@@ -228,7 +218,7 @@ function BestPerMap({maps, userId}: {maps: MapBest[]; userId: number}) {
     );
 }
 
-function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: () => void}) {
+function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: () => Promise<void>}) {
     const [error, setError] = useState<string | null>(null);
 
     async function deleteStats() {
@@ -237,9 +227,9 @@ function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: 
         }
         try {
             await deleteUserStats(userId);
-            onStatsDeleted();
+            await onStatsDeleted();
         } catch {
-            setError("Could not delete your stats. Please try again.");
+            setError("Something went wrong. Please refresh the page and check your stats.");
         }
     }
 
@@ -252,7 +242,7 @@ function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: 
     );
 }
 
-function ProfileStats({stats, userId, onStatsDeleted}: {stats: UserStats; userId: number; onStatsDeleted: () => void}) {
+function ProfileStats({stats, userId, onStatsDeleted}: {stats: UserStats; userId: number; onStatsDeleted: () => Promise<void>}) {
     const games = [...stats.recentGames].reverse();
     const answered = stats.correctGuesses + stats.incorrectGuesses;
 

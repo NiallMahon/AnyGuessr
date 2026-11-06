@@ -27,7 +27,7 @@ public enum Trophy {
 
         public static Facts from(List<GameRecord> finishedGames, Instant now) {
             List<GameRecord> counted = finishedGames.stream()
-                    .filter(game -> game.getScore().orElseThrow().total() >= MIN_TARGETS)
+                    .filter(game -> game.getScore().total() >= MIN_TARGETS)
                     .toList();
             int run = 0;
             int bestRun = 0;
@@ -39,7 +39,7 @@ public enum Trophy {
 
             return new Facts(
                     finishedGames.size(),
-                    (int) counted.stream().filter(game -> accuracy(game) == 100.0).map(GameRecord::getMapId).distinct().count(),
+                    (int) counted.stream().filter(game -> isFlawless(game.getScore())).map(GameRecord::getMapId).distinct().count(),
                     (int) counted.stream().filter(Facts::isSpeedy).count(),
                     bestRun,
                     PlayStreak.from(finishedGames, now).bestWeeks());
@@ -50,7 +50,7 @@ public enum Trophy {
         }
 
         private static double accuracy(GameRecord game) {
-            return game.getScore().orElseThrow().accuracyPercent();
+            return game.getScore().accuracyPercent();
         }
     }
 
@@ -64,6 +64,10 @@ public enum Trophy {
         this.description = description;
         this.goal = goal;
         this.measure = measure;
+    }
+
+    public static boolean isFlawless(Score score) {
+        return score.total() >= MIN_TARGETS && score.accuracyPercent() == 100.0;
     }
 
     public static Set<Trophy> newlyEarned(Facts facts, Set<Trophy> alreadyHeld) {

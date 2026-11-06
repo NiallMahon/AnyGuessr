@@ -5,7 +5,6 @@ import com.anyguessr.anyguessrbackend.stats.domain.GameRecord;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository;
 import com.anyguessr.anyguessrbackend.stats.domain.GameSessionId;
 import com.anyguessr.anyguessrbackend.stats.domain.MapId;
-import com.anyguessr.anyguessrbackend.stats.domain.RegionId;
 import com.anyguessr.anyguessrbackend.stats.domain.Score;
 import com.anyguessr.anyguessrbackend.stats.domain.Trophy;
 import com.anyguessr.anyguessrbackend.stats.domain.UserId;
@@ -49,32 +48,24 @@ public class JpaGameRecordRepository implements GameRecordRepository {
     }
 
     @Override
-    public void addGuess(
-            GameSessionId sessionId,
-            RegionId target,
-            RegionId selected,
-            boolean correct,
-            Double clickedLat,
-            Double clickedLng,
-            Instant guessedAt
-    ) {
+    public void addGuess(GameSessionId sessionId, GameRecord.Guess guess, Instant guessedAt) {
         userGames.addGuess(
                 sessionId.value(),
-                target.value(),
-                selected.value(),
-                correct,
-                clickedLat,
-                clickedLng,
+                guess.target().value(),
+                guess.selected().value(),
+                guess.correct(),
+                guess.clickedLat(),
+                guess.clickedLng(),
                 LocalDateTime.ofInstant(guessedAt, ZoneId.systemDefault()));
     }
 
     @Override
     public void markFinished(GameRecord gameRecord) {
-        Score score = gameRecord.getScore().orElseThrow();
+        Score score = gameRecord.getScore();
 
         userGames.markFinished(
                 gameRecord.getSessionId().value(),
-                gameRecord.getFinishedAt().orElseThrow(),
+                gameRecord.getFinishedAt(),
                 gameRecord.durationSeconds(),
                 score.correct(),
                 score.incorrect());
@@ -82,12 +73,12 @@ public class JpaGameRecordRepository implements GameRecordRepository {
 
     @Override
     public PlayerTotals findTotalsForUser(UserId userId) {
-        return toTotals(userGames.findTotals(userId.value()));
+        return toTotals(userGames.findTotals(userId.value(), PlayerTotals.BEST_PACE_MIN_PERCENT));
     }
 
     @Override
     public PlayerTotals findTotalsOnMap(UserId userId, MapId mapId) {
-        return toTotals(userGames.findTotalsOnMap(userId.value(), mapId.value()));
+        return toTotals(userGames.findTotalsOnMap(userId.value(), mapId.value(), PlayerTotals.BEST_PACE_MIN_PERCENT));
     }
 
     @Override
@@ -124,7 +115,7 @@ public class JpaGameRecordRepository implements GameRecordRepository {
     public void saveBestGame(GameRecord gameRecord) {
         userGames.saveBestGame(
                 gameRecord.getSessionId().value(),
-                gameRecord.getScore().orElseThrow().accuracyPercent());
+                gameRecord.getScore().accuracyPercent());
     }
 
     @Override
@@ -162,7 +153,7 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                         row.getPlace(),
                         new UserId(row.getUserId()),
                         row.getUsername(),
-                        new Score(row.getCorrectGuesses(), row.getIncorrectGuesses()),
+                        row.getAccuracy(),
                         row.getDuration()))
                 .toList();
     }

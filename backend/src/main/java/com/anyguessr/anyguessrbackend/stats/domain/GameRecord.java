@@ -3,9 +3,17 @@ package com.anyguessr.anyguessrbackend.stats.domain;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 
 public class GameRecord {
+
+    public record Guess(
+            RegionId target,
+            RegionId selected,
+            boolean correct,
+            Double clickedLat,
+            Double clickedLng
+    ) {
+    }
 
     public static class GameAlreadyFinishedException extends RuntimeException {
 
@@ -88,10 +96,7 @@ public class GameRecord {
     }
 
     public int durationSeconds() {
-        if (!isFinished()) {
-            throw new IllegalStateException("Game has not finished yet");
-        }
-
+        requireFinished();
         return (int) Duration.between(startedAt, finishedAt).toSeconds();
     }
 
@@ -128,11 +133,19 @@ public class GameRecord {
         return startedAt;
     }
 
-    public Optional<Instant> getFinishedAt() {
-        return Optional.ofNullable(finishedAt);
+    public Instant getFinishedAt() {
+        requireFinished();
+        return finishedAt;
     }
 
-    public Optional<Score> getScore() {
-        return Optional.ofNullable(score);
+    public Score getScore() {
+        requireFinished();
+        return score;
+    }
+
+    private void requireFinished() {
+        if (!isFinished()) {
+            throw new IllegalStateException("Game has not finished yet");
+        }
     }
 }

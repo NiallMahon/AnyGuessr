@@ -4,11 +4,13 @@ import {useEffect, useState} from "react";
 import {
     fetchComparison,
     fetchLeaderboard,
+    formatPercent,
+    formatTime,
     type LeaderboardEntry,
     type MapBest,
     type MapComparison
 } from "../services/statsAPI";
-import {formatPercent, formatTime, Popup} from "./ProfileStats";
+import {Popup} from "./ProfileStats";
 
 function score(best: MapBest | null) {
     return best === null ? "not played" : `${formatPercent(best.accuracyPercent)} · ${formatTime(best.durationSeconds)}`;

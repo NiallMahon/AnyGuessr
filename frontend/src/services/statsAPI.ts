@@ -1,4 +1,4 @@
-// Fetches a player's stats, map detail, game results, comparisons and map leaderboards, and deletes a player's stats.
+// Fetches a player's stats, map detail, game results, comparisons and map leaderboards, deletes a player's stats, and formats stat values.
 const BASE = '/api/stats';
 
 export interface RecentGame {
@@ -24,6 +24,7 @@ export interface MapBest {
     mapId: number;
     mapName: string;
     accuracyPercent: number;
+    flawless: boolean;
     durationSeconds: number;
     place: number;
     players: number;
@@ -90,22 +91,34 @@ export interface MapComparison {
     theirs: MapBest | null;
 }
 
-export async function fetchUserStats(userId: number): Promise<UserStats> {
-    const res = await fetch(`${BASE}/users/${userId}`);
-    if (!res.ok) throw new Error(`/users/${userId} failed: ${res.status}`);
-    return (await res.json()) as UserStats;
+export function formatPercent(percent: number) {
+    return `${Math.round(percent * 10) / 10}%`;
 }
 
-export async function fetchMapDetail(userId: number, mapId: number): Promise<MapDetail> {
-    const res = await fetch(`${BASE}/users/${userId}/maps/${mapId}`);
-    if (!res.ok) throw new Error(`/users/${userId}/maps/${mapId} failed: ${res.status}`);
-    return (await res.json()) as MapDetail;
+export function formatTime(seconds: number | null) {
+    if (seconds === null) {
+        return "-";
+    }
+    const whole = Math.round(seconds);
+    return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-export async function fetchComparison(userId: number, otherId: number): Promise<MapComparison[]> {
-    const res = await fetch(`${BASE}/users/${userId}/compare/${otherId}`);
-    if (!res.ok) throw new Error(`/users/${userId}/compare/${otherId} failed: ${res.status}`);
-    return (await res.json()) as MapComparison[];
+async function get<T>(path: string): Promise<T> {
+    const res = await fetch(`${BASE}${path}`);
+    if (!res.ok) throw new Error(`${path} failed: ${res.status}`);
+    return (await res.json()) as T;
+}
+
+export function fetchUserStats(userId: number): Promise<UserStats> {
+    return get<UserStats>(`/users/${userId}`);
+}
+
+export function fetchMapDetail(userId: number, mapId: number): Promise<MapDetail> {
+    return get<MapDetail>(`/users/${userId}/maps/${mapId}`);
+}
+
+export function fetchComparison(userId: number, otherId: number): Promise<MapComparison[]> {
+    return get<MapComparison[]>(`/users/${userId}/compare/${otherId}`);
 }
 
 export async function fetchGameResult(sessionId: string): Promise<GameResult | null> {
@@ -113,10 +126,8 @@ export async function fetchGameResult(sessionId: string): Promise<GameResult | n
     return res.ok ? (await res.json()) as GameResult : null;
 }
 
-export async function fetchLeaderboard(mapId: number): Promise<LeaderboardEntry[]> {
-    const res = await fetch(`${BASE}/maps/${mapId}/leaderboard`);
-    if (!res.ok) throw new Error(`/maps/${mapId}/leaderboard failed: ${res.status}`);
-    return (await res.json()) as LeaderboardEntry[];
+export function fetchLeaderboard(mapId: number): Promise<LeaderboardEntry[]> {
+    return get<LeaderboardEntry[]>(`/maps/${mapId}/leaderboard`);
 }
 
 export async function deleteUserStats(userId: number): Promise<void> {
