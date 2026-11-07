@@ -48,9 +48,9 @@ public class AuthService {
 
         User user = new User(
                 null,
+                username,
                 email,
                 passwordEncoder.encode(request.password()),
-                username,
                 request.location().trim()
         );
 

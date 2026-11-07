@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @RestController
+@RequestMapping("/auth")
 @CrossOrigin(origins = {
         "http://localhost:5173",
         "http://localhost:5174"
@@ -25,7 +26,7 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping({"/register", "/auth/register"})
+    @PostMapping("/register")
     public AuthResponse register(
             @RequestBody RegisterRequest request
     ) {
