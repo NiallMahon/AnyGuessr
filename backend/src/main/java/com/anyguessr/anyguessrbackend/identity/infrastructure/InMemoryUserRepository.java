@@ -27,7 +27,8 @@ public class InMemoryUserRepository implements UserRepository {
                 1L,
                 "CillianShine",
                 "cillian@email.com",
-                "hashed_password"
+                "hashed_password",
+                "Galway, Ireland"
         ));
     }
 
@@ -70,7 +71,8 @@ public class InMemoryUserRepository implements UserRepository {
                     newId,
                     user.username(),
                     user.email(),
-                    user.passwordHash()
+                    user.passwordHash(),
+                    user.location()
                 );
         }
         usersById.put(

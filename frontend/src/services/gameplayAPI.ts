@@ -1,3 +1,4 @@
+// Starts quizzes and submits guesses to the backend.
 const BASE = '/api/quizzes';
 
 export interface StartQuizResponse {
@@ -51,12 +52,16 @@ export function startQuiz(
 
 export function submitGuess(
   sessionId: string,
-  selectedRegionId: string
+  selectedRegionId: string,
+  clickedLat?: number,
+  clickedLng?: number
 ): Promise<GuessResponse> {
   return post<GuessResponse>(
     `/${sessionId}/guesses`,
     {
       selectedRegionId,
+      clickedLat,
+      clickedLng,
     }
   );
 }

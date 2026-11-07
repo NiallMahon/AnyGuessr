@@ -1,3 +1,4 @@
+// REST endpoints for registering and logging in.
 package com.anyguessr.anyguessrbackend.identity.ui;
 
 import com.anyguessr.anyguessrbackend.identity.application.AuthResponse;

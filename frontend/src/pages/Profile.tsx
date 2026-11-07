@@ -1,7 +1,13 @@
+// The logged-in player's profile page: header, stats, comments and friends.
 import "./Profile.css";
 import {useEffect, useState} from "react";
-import {fetchUserStats, type UserStats} from "../services/statsAPI";
-import ProfileStats from "../components/ProfileStats";
+import {fetchUserStats, FRIENDS, type UserStats} from "../services/statsAPI";
+import {
+    DeleteStats,
+    MapsPlayed,
+    RankAndStreak,
+    TrophyShelf
+} from "../components/ProfileStats";
 
 type UserProfile = {
     id: number;
@@ -11,7 +17,43 @@ type UserProfile = {
     gamesPlayed: number;
 };
 
-//Simple profile page for the user, with a profile picture, name, location, and stats. Also would include recent games, comments, and friends
+function FriendsCard() {
+    const [search, setSearch] = useState("");
+    const matches = FRIENDS.filter((friend) => friend.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+    return (
+        <section className="stats-card profile-friends">
+            <header className="stats-card-header">
+                <h3>Friends</h3>
+                <span>{FRIENDS.length}</span>
+            </header>
+            <input
+                type="search"
+                className="stats-search"
+                placeholder="Search your friends"
+                aria-label="Search your friends"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+            />
+            {matches.length === 0 ? (
+                <p className="stats-card-empty">{FRIENDS.length === 0 ? "No friends yet." : "No friends match that search."}</p>
+            ) : (
+                <ul className="stats-map-rows stats-scroll">
+                    {matches.map((friend) => (
+                        <li key={friend.userId} className="stats-map-row">
+                            <span className="stats-row-main">
+                                <strong>{friend.name}</strong>
+                                <span>{friend.location}</span>
+                            </span>
+                            <span className="trophy-badge">{friend.status}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
+    );
+}
+
 function Profile() {
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -73,46 +115,39 @@ function Profile() {
     }
 
     return (
-        // Main profile container
         <main className="profile">
-            {/* Profile header section with avatar, name, location, and member since date */}
             <section className="profile-header">
+                    {stats && <RankAndStreak stats={stats}/>}
                     <div className="profile-avatar">
-                        {/* Placeholder for profile picture, currently just initials */}
                         <span>{profile?.initials}</span>
                     </div>
                 <div className="profile-details">
                     <h1>{profile?.name}</h1>
                     <p>{profile?.location}</p>
                 </div>
-                {/* Edit profile button */}
                 <button className="profile-edit" type="button">
                 Edit Profile
                 </button>
             </section>
-            {stats ? (
-                <ProfileStats stats={stats}/>
-            ) : (
-                <p className="profile-stats-status">{statsError ?? "Loading stats..."}</p>
-            )}
-            {/* Profile layout section with recent games, comments in the main page section of the page (75% of width) while rank and friends are in the sidebar */}
-            <div className="profile-layout">
-                <div className="profile-main-content">
-            <section className="profile-comments">
-                <h2>Comments</h2>
-                <p>CS.com: This guy is quite litterally the worst player to touch the game</p>
-            </section>
-            </div>
-            
-            <aside className="profile-sidebar">
-                <section className='profile-rank'>
-                    <h2>Rank</h2>
-                </section>
-
-                <section className="profile-friends">
-                    <h2>Friends</h2>
-                </section>
-            </aside>
+            <div className="stats-panel">
+                <h2>Your stats</h2>
+                {!stats && <p>{statsError ?? "Loading stats..."}</p>}
+                <div className="profile-grid">
+                    <div className="profile-column">
+                        {stats && <MapsPlayed maps={stats.bestPerMap}/>}
+                        <section className="stats-card">
+                            <header className="stats-card-header">
+                                <h3>Comments</h3>
+                            </header>
+                            <p>CS.com: This guy is quite litterally the worst player to touch the game</p>
+                        </section>
+                    </div>
+                    <div className="profile-column">
+                        {stats && <TrophyShelf trophies={stats.trophies}/>}
+                        <FriendsCard/>
+                    </div>
+                </div>
+                {stats && <DeleteStats userId={Number(userId)} onStatsDeleted={() => fetchUserStats(Number(userId)).then(setStats)}/>}
             </div>
         </main>
 

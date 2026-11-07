@@ -3,9 +3,10 @@ package com.anyguessr.anyguessrbackend.stats.domain;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 
 public class GameRecord {
+
+    public record Guess(RegionId target, RegionId selected, boolean correct, Double clickedLat, Double clickedLng) {}
 
     public static class GameAlreadyFinishedException extends RuntimeException {
 
@@ -32,14 +33,6 @@ public class GameRecord {
     ) {
         if (sessionId == null || userId == null || mapId == null || startedAt == null) {
             throw new IllegalArgumentException("Session, user, map and start time must not be null");
-        }
-
-        if (finishedAt != null && finishedAt.isBefore(startedAt)) {
-            throw new IllegalArgumentException("A game cannot finish before it started");
-        }
-
-        if ((finishedAt == null) != (score == null)) {
-            throw new IllegalArgumentException("A game has a score only once it has finished");
         }
 
         this.sessionId = sessionId;
@@ -88,11 +81,21 @@ public class GameRecord {
     }
 
     public int durationSeconds() {
-        if (!isFinished()) {
-            throw new IllegalStateException("Game has not finished yet");
+        requireFinished();
+        return (int) Duration.between(startedAt, finishedAt).toSeconds();
+    }
+
+    public double secondsPerTarget() {
+        return durationSeconds() / (double) score.total();
+    }
+
+    public boolean isBetterThan(GameRecord other) {
+        if (!isFinished() || !other.isFinished()) {
+            throw new IllegalStateException("Only finished games can be compared");
         }
 
-        return (int) Duration.between(startedAt, finishedAt).toSeconds();
+        int byAccuracy = Double.compare(score.accuracyPercent(), other.score.accuracyPercent());
+        return byAccuracy != 0 ? byAccuracy > 0 : durationSeconds() < other.durationSeconds();
     }
 
     public boolean isFinished() {
@@ -115,11 +118,19 @@ public class GameRecord {
         return startedAt;
     }
 
-    public Optional<Instant> getFinishedAt() {
-        return Optional.ofNullable(finishedAt);
+    public Instant getFinishedAt() {
+        requireFinished();
+        return finishedAt;
     }
 
-    public Optional<Score> getScore() {
-        return Optional.ofNullable(score);
+    public Score getScore() {
+        requireFinished();
+        return score;
+    }
+
+    private void requireFinished() {
+        if (!isFinished()) {
+            throw new IllegalStateException("Game has not finished yet");
+        }
     }
 }

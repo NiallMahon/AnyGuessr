@@ -30,6 +30,9 @@ public class UserEntity {
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
+    @Column(length = 100)
+    private String location;
+
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 
@@ -94,6 +97,10 @@ public class UserEntity {
     this.passwordHash = passwordHash;
     }
 
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
     public void setVerifiedAt(LocalDateTime verifiedAt) {
         this.verifiedAt = verifiedAt;
     }
@@ -107,7 +114,8 @@ public class UserEntity {
             userId,
             username,
             email,
-            passwordHash
+            passwordHash,
+            location
     );
 }
 
@@ -117,6 +125,7 @@ public static UserEntity fromDomain(User user) {
     entity.username = user.username();
     entity.email = user.email();
     entity.passwordHash = user.passwordHash();
+    entity.location = user.location();
     return entity;
 }
 

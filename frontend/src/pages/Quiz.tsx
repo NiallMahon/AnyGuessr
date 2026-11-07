@@ -1,9 +1,12 @@
+// Plays a quiz, then shows the result and offers another go.
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
+  startQuiz,
   submitGuess,
   type GuessResponse,
 } from "../services/gameplayAPI";
+import GameResult from "../components/GameResult";
 
 interface QuizLocationState {
   sessionId: string;
@@ -60,6 +63,41 @@ function Quiz() {
 
   const sessionId = quizState.sessionId;
   const mapId = quizState.mapId;
+
+  async function playAgain() {
+    const userId =
+      sessionStorage.getItem("userId");
+
+    try {
+      const quiz =
+        await startQuiz(
+          mapId,
+          userId === null
+            ? null
+            : Number(userId)
+        );
+
+      navigate("/quiz", {
+        state: {
+          sessionId:
+            quiz.sessionId,
+
+          mapId:
+            quiz.mapId,
+
+          initialTarget:
+            quiz.currentTarget,
+        },
+      });
+
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        "Unable to start the quiz."
+      );
+    }
+  }
 
   async function handleGuess(
     regionId: string
@@ -210,13 +248,23 @@ function Quiz() {
           </p>
 
           {lastResult.quizComplete && (
-            <button
-              onClick={() =>
-                navigate("/mapselector")
-              }
-            >
-              Choose another map
-            </button>
+            <>
+              {sessionStorage.getItem("userId") !== null && (
+                <GameResult sessionId={sessionId} />
+              )}
+
+              <button onClick={playAgain}>
+                Play again
+              </button>
+
+              <button
+                onClick={() =>
+                  navigate("/mapselector")
+                }
+              >
+                Choose another map
+              </button>
+            </>
           )}
         </div>
       )}
@@ -232,4 +280,10 @@ function Quiz() {
   );
 }
 
-export default Quiz;
+function QuizPage() {
+  const location = useLocation();
+
+  return <Quiz key={location.key} />;
+}
+
+export default QuizPage;

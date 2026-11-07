@@ -1,3 +1,4 @@
+// Scores a guess on a saved quiz and announces the guess and any final score.
 package com.anyguessr.anyguessrbackend.gameplay.application;
 
 import com.anyguessr.anyguessrbackend.gameplay.domain.GuessResult;
@@ -36,7 +37,9 @@ public class SubmitGuessUseCase {
 
     public GuessResult execute(
             QuizSessionId sessionId,
-            RegionId selectedRegionId
+            RegionId selectedRegionId,
+            Double clickedLat,
+            Double clickedLng
     ) {
         QuizSession session =
                 quizSessionRepository.findById(sessionId);
@@ -51,6 +54,15 @@ public class SubmitGuessUseCase {
                 session.submitGuess(selectedRegionId);
 
         quizSessionRepository.save(session);
+
+        quizEventListener.guessMade(
+                sessionId,
+                result.targetRegionId(),
+                result.selectedRegionId(),
+                result.correct(),
+                clickedLat,
+                clickedLng
+        );
 
         if (result.quizComplete()) {
             quizEventListener.quizFinished(

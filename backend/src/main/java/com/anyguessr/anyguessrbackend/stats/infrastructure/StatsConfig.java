@@ -9,13 +9,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
+import java.time.ZoneOffset;
 
 @Configuration
 public class StatsConfig {
 
     @Bean
     public Clock statsClock() {
-        return Clock.systemUTC();
+        return Clock.tickSeconds(ZoneOffset.UTC);
     }
 
     @Bean

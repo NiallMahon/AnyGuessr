@@ -9,8 +9,11 @@ public record Score(int correct, int incorrect) {
         }
     }
 
+    public int total() {
+        return correct + incorrect;
+    }
+
     public double accuracyPercent() {
-        int total = correct + incorrect;
-        return total == 0 ? 0.0 : correct * 100.0 / total;
+        return total() == 0 ? 0.0 : correct * 100.0 / total();
     }
 }

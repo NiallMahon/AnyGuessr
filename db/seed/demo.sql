@@ -1,7 +1,4 @@
--- Demo data for a new database: the starter player, the World map and the three regions the quiz buttons use.
-
-INSERT INTO users (user_id, username, created_at)
-VALUES (1, 'CillianShine', CURRENT_TIMESTAMP);
+-- Demo data for a new database: the World map and the three regions the quiz buttons use. The starter player comes from db/init/003.
 
 INSERT INTO map_data (map_id, owner_id, map_name, image_ref, status, version, created_at)
 VALUES (1, 1, 'World', 'world.png', 'PUBLISHED', 1, CURRENT_TIMESTAMP);

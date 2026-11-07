@@ -1,3 +1,4 @@
+// Tests for the quiz REST endpoints.
 package com.anyguessr.anyguessrbackend.gameplay.ui;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
@@ -116,7 +117,7 @@ class QuizControllerTest {
                 );
 
         SubmitGuessRequest request =
-                new SubmitGuessRequest("FR");
+                new SubmitGuessRequest("FR", null, null);
 
         GuessResponse response =
                 controller.submitGuess(

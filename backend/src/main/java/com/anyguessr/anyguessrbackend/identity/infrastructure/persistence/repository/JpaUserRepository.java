@@ -2,13 +2,15 @@ package com.anyguessr.anyguessrbackend.identity.infrastructure.persistence.repos
 
 import com.anyguessr.anyguessrbackend.identity.domain.User;
 import com.anyguessr.anyguessrbackend.identity.domain.UserRepository;
+import com.anyguessr.anyguessrbackend.identity.domain.UserRepository.UsernameOrEmailTakenException;
 import com.anyguessr.anyguessrbackend.identity.infrastructure.persistence.entity.UserEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-@org.springframework.context.annotation.Profile("database")
+@org.springframework.context.annotation.Profile("!memory")
 public class JpaUserRepository implements UserRepository {
 
     private final SpringDataUserRepository repository;
@@ -30,7 +32,7 @@ public class JpaUserRepository implements UserRepository {
             return Optional.empty();
         }
 
-        return repository.findByEmailIgnoreCase(email)
+        return repository.findByEmailIgnoreCase(email.trim())
                 .map(UserEntity::toDomain);
     }
 
@@ -43,7 +45,7 @@ public class JpaUserRepository implements UserRepository {
         }
 
         return repository
-                .findByUsernameIgnoreCase(username)
+                .findByUsernameIgnoreCase(username.trim())
                 .map(UserEntity::toDomain);
     }
 
@@ -63,11 +65,16 @@ public class JpaUserRepository implements UserRepository {
             entity.setUsername(user.username());
             entity.setEmail(user.email());
             entity.setPasswordHash(user.passwordHash());
+            entity.setLocation(user.location());
         }
 
         
 
-        return repository.save(entity).toDomain();
+        try {
+            return repository.save(entity).toDomain();
+        } catch (DataIntegrityViolationException e) {
+            throw new UsernameOrEmailTakenException(e);
+        }
     }
 
 }

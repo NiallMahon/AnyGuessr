@@ -1,39 +1,28 @@
+// Registers and logs in players against the users table, hashing passwords with BCrypt.
 package com.anyguessr.anyguessrbackend.identity.application;
 
-import com.anyguessr.anyguessrbackend.identity.domain.Profile;
-import com.anyguessr.anyguessrbackend.identity.domain.ProfileRepository;
 import com.anyguessr.anyguessrbackend.identity.domain.User;
 import com.anyguessr.anyguessrbackend.identity.domain.UserRepository;
+import com.anyguessr.anyguessrbackend.identity.domain.UserRepository.UsernameOrEmailTakenException;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
-
-
-
-import java.util.Arrays;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
-
-    
-    
 
     public AuthService(
             UserRepository userRepository,
-            ProfileRepository profileRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
-        this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -41,6 +30,7 @@ public class AuthService {
         validateRegisterRequest(request);
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String username = request.username().trim();
 
         if (userRepository.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(
@@ -49,27 +39,29 @@ public class AuthService {
             );
         }
 
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "That username is already taken"
+            );
+        }
 
         User user = new User(
                 null,
-                request.username().trim(),
+                username,
                 email,
-                passwordEncoder.encode(request.password())
-        );
-        User savedUser = userRepository.save(user);
-        Long userId = savedUser.id();
-
-        Profile profile = new Profile(
-                userId,
-                request.username().trim(),
-                request.location().trim(),
-                createInitials(request.username()),
-                0   
+                passwordEncoder.encode(request.password()),
+                request.location().trim()
         );
 
-        profileRepository.save(profile);
-
-        return new AuthResponse(userId);
+        try {
+            return new AuthResponse(userRepository.save(user).id());
+        } catch (UsernameOrEmailTakenException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "That username or email is already taken"
+            );
+        }
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -81,6 +73,7 @@ public class AuthService {
         }
 
         User user = userRepository.findByEmail(request.identifier())
+                .or(() -> userRepository.findByUsername(request.identifier()))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
                         "Invalid identifier or password"
@@ -111,15 +104,4 @@ public class AuthService {
             );
         }
     }
-
-    private String createInitials(String name) {
-        return Arrays.stream(name.trim().split("\\s+"))
-                .filter(part -> !part.isBlank())
-                .limit(2)
-                .map(part -> part.substring(0, 1)
-                        .toUpperCase(Locale.ROOT))
-                .collect(Collectors.joining());
-    }
-
-    
 }
