@@ -59,7 +59,7 @@ public class MapController {
     }
 
     // Regex on the path variable blocks "../" tricks.
-    @GetMapping("/images/{name:[a-f0-9\\-]+\\.(?:png|jpg|webp)}")
+    @GetMapping("/images/{name:[A-Za-z0-9_-]+\\.(?:png|jpg|jpeg|webp)}")
     public ResponseEntity<Resource> image(@PathVariable String name) {
         Path file = UPLOAD_DIR.resolve(name);
         if (!Files.exists(file)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
