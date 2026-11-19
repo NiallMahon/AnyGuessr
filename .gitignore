@@ -146,4 +146,4 @@ vite.config.ts.timestamp-*
 
 #Ignore idea
 .idea/
-*.imls
+*.iml
