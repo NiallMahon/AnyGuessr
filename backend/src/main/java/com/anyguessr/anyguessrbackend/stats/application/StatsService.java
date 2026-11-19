@@ -221,4 +221,8 @@ public class StatsService {
                 now
         );
     }
+
+    public int getGamesPlayed(UserId userId) {
+        return gameRecordRepository.findFinishedGames(userId).size();
+    }
 }
