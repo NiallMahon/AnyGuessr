@@ -58,46 +58,47 @@ function Profile() {
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const userId = sessionStorage.getItem("userId");
+    const [userId, setUserId] = useState<number | null>(null);
     useEffect(() => {
         async function fetchProfile() {
-            if(!userId) {
-                setError("User not logged in");
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:8080/profile/${userId}`);
+           try {
+            const response = await fetch("http://localhost:8080/profile/me", {
+                credentials: "include",
+            });
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch profile');
                 }
                 const data = await response.json();
                 setProfile(data);
-            } catch (err) {
-                setError(
-                    err instanceof Error ? err.message : 'Failed to fetch profile'
-                );
-            } finally {
+                setUserId(data.id);
+            } catch {
+                setProfile(null);
+            }
+            finally {
                 setLoading(false);
             }
         }
+    
 
         fetchProfile();
-    },[userId]);
+    },[]);
+
+    function handleLogout() {
+        window.location.href = "http://localhost:8080/logout";
+    }
 
     const [stats, setStats] = useState<UserStats | null>(null);
     const [statsError, setStatsError] = useState<string | null>(null);
     useEffect(() => {
         async function fetchStats() {
-            if (!userId) {
+            if (userId == null) {
                 return;
             }
 
             try {
-                setStats(await fetchUserStats(Number(userId)));
+               const data = await fetchUserStats(Number(userId));
+               setStats(data);
             } catch {
                 setStatsError("Could not load stats");
             }
@@ -110,8 +111,13 @@ function Profile() {
         return <div>Loading...</div>;
     }
 
-    if (error) {
-        return <div>Error: {error}</div>;
+    if(!profile) {
+        return (
+            <main>
+                <p>Log in to see your profile</p>
+                <a href="/login">Log in</a>
+            </main>
+        )
     }
 
     return (
@@ -127,6 +133,9 @@ function Profile() {
                 </div>
                 <button className="profile-edit" type="button">
                 Edit Profile
+                </button>
+                <button className="log-out" type="button" onClick={handleLogout}>
+                    Log Out
                 </button>
             </section>
             <div className="stats-panel">
