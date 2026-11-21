@@ -1,12 +1,22 @@
 // Starts quizzes and submits guesses to the backend.
 const BASE = '/api/quizzes';
 
+/**
+ * Data returned by the backend when a new quiz starts.
+ * Includes the session identifier and initial target region.
+ */
 export interface StartQuizResponse {
   sessionId: string;
   mapId: string;
   currentTarget: string;
 }
 
+/**
+ * Result of submitting a guess.
+ *
+ * Includes whether the guess was correct, whether a correction
+ * is required, the updated score and quiz completion status.
+ */
 export interface GuessResponse {
   correct: boolean;
   correctionRequired: boolean;
@@ -40,6 +50,13 @@ async function post<T>(
   return response.json() as Promise<T>;
 }
 
+/**
+ * Requests a new quiz session for the selected map.
+ *
+ * @param mapId Identifier of the selected map.
+ * @param userId Player identifier, or null when not provided.
+ * @returns The new quiz session details.
+ */
 export function startQuiz(
   mapId: string,
   userId: number | null
@@ -50,6 +67,15 @@ export function startQuiz(
   });
 }
 
+/**
+ * Sends a player's selected region to the backend for evaluation.
+ *
+ * @param sessionId Identifier of the active quiz session.
+ * @param selectedRegionId Region selected by the player.
+ * @param clickedLat Optional latitude of the click.
+ * @param clickedLng Optional longitude of the click.
+ * @returns The guess result and updated quiz progress.
+ */
 export function submitGuess(
   sessionId: string,
   selectedRegionId: string,

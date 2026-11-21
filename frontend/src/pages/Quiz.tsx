@@ -8,12 +8,22 @@ import {
 } from "../services/gameplayAPI";
 import GameResult from "../components/GameResult";
 
+/**
+ * Quiz session details passed from the map selector
+ * through React Router navigation state.
+ */
 interface QuizLocationState {
   sessionId: string;
   mapId: string;
   initialTarget: string;
 }
 
+/**
+ * Displays and manages an active quiz session.
+ *
+ * Handles region guesses, feedback, quiz progress
+ * and the completed-game interface.
+ */
 function Quiz() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -64,6 +74,11 @@ function Quiz() {
   const sessionId = quizState.sessionId;
   const mapId = quizState.mapId;
 
+  /**
+   * Starts another quiz using the previously selected map.
+   *
+   * Creates a new backend session and navigates to it.
+   */
   async function playAgain() {
     const userId =
       sessionStorage.getItem("userId");
@@ -99,6 +114,14 @@ function Quiz() {
     }
   }
 
+  /**
+   * Submits a region guess and updates the displayed progress.
+   *
+   * Prevents duplicate submissions and further guesses after
+   * completion. Handles correction attempts and backend errors.
+   *
+   * @param regionId Identifier of the selected region.
+   */
   async function handleGuess(
     regionId: string
   ) {
@@ -280,6 +303,10 @@ function Quiz() {
   );
 }
 
+/**
+ * Wraps the quiz component and uses the navigation key
+ * to reset local quiz state when the route entry changes.
+ */
 function QuizPage() {
   const location = useLocation();
 
