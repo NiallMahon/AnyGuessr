@@ -72,6 +72,7 @@ function Profile() {
                 const data = await response.json();
                 setProfile(data);
                 setUserId(data.id);
+                sessionStorage.setItem("userId", String(data.id));
             } catch {
                 setProfile(null);
             }
@@ -85,6 +86,7 @@ function Profile() {
     },[]);
 
     function handleLogout() {
+        sessionStorage.removeItem("userId");
         window.location.href = "http://localhost:8080/logout";
     }
 
