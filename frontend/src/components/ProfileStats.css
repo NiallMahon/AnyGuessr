@@ -1,4 +1,4 @@
-/* Styles for the profile stats, per-map stats, trophies, pop-ups and the delete button. */
+/* Styles for profile stats*/
 :root {
     --stats-surface: #fff;
     --stats-surface-2: #f6f5f8;
@@ -97,8 +97,7 @@
     border-radius: 18px;
 }
 
-.stats-card,
-.stats-dialog {
+.stats-card {
     padding: 20px 22px;
     border-radius: 14px;
 }
@@ -481,11 +480,6 @@
     color: var(--stats-muted);
 }
 
-.stats-row-link {
-    font-weight: 500;
-    text-align: inherit;
-}
-
 .game-result {
     max-width: 480px;
     margin: 24px auto;
@@ -504,19 +498,6 @@
 .stats-rows .leaderboard-you,
 .stats-rows .leaderboard-you strong {
     color: var(--stats-accent);
-}
-
-.stats-dialog {
-    width: min(480px, calc(100vw - 32px));
-    border: 1px solid var(--border);
-    background: var(--stats-surface);
-    color: var(--stats-muted);
-    box-shadow: var(--shadow);
-    text-align: left;
-}
-
-.stats-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.4);
 }
 
 .stats-privacy {
