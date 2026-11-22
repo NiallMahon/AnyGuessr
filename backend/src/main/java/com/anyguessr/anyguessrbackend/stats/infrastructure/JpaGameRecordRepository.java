@@ -21,10 +21,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * {@link GameRecordRepository} backed by MySQL through Spring Data JPA. Maps
+ * database rows to and from the stats domain objects.
+ */
 public class JpaGameRecordRepository implements GameRecordRepository {
 
     private final SpringDataUserGameRepository userGames;
 
+    /**
+     * Creates the repository.
+     *
+     * @param userGames the Spring Data repository for the stats tables
+     * @throws IllegalArgumentException if it is {@code null}
+     */
     public JpaGameRecordRepository(SpringDataUserGameRepository userGames) {
         if (userGames == null) {
             throw new IllegalArgumentException("Spring Data repository must not be null");
@@ -33,11 +43,19 @@ public class JpaGameRecordRepository implements GameRecordRepository {
         this.userGames = userGames;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Optional<GameRecord> findBySessionId(GameSessionId sessionId) {
         return userGames.findBySessionId(sessionId.value()).map(this::restore);
     }
 
+    /**
+     * Saves a new game as a {@code user_games} row.
+     *
+     * @param gameRecord the game to save
+     */
     @Override
     public void add(GameRecord gameRecord) {
         userGames.save(new UserGameEntity(
@@ -47,6 +65,13 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 gameRecord.getStartedAt()));
     }
 
+    /**
+     * Saves a guess as a {@code guesses} row, numbering it after the game's earlier guesses.
+     *
+     * @param sessionId the game the guess belongs to
+     * @param guess     the guess
+     * @param guessedAt when the guess was made
+     */
     @Override
     public void addGuess(GameSessionId sessionId, GameRecord.Guess guess, Instant guessedAt) {
         userGames.addGuess(
@@ -59,6 +84,9 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 LocalDateTime.ofInstant(guessedAt, ZoneId.systemDefault()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void markFinished(GameRecord gameRecord) {
         Score score = gameRecord.getScore();
@@ -71,36 +99,63 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 score.incorrect());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PlayerTotals findTotalsOnMap(UserId userId, MapId mapId) {
         return toTotals(userGames.findTotalsOnMap(userId.value(), mapId.value(), PlayerTotals.BEST_PACE_MIN_PERCENT));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<FinishedGame> findRecentFinishedGamesOnMap(UserId userId, MapId mapId, int limit) {
         return toFinishedGames(userGames.findRecentFinishedOnMap(userId.value(), mapId.value(), limit));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<GameRecord> findFinishedGames(UserId userId) {
         return userGames.findFinished(userId.value()).stream().map(this::restore).toList();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<FirstGuess> findFirstGuesses(GameSessionId sessionId) {
         return toFirstGuesses(userGames.findFirstGuesses(sessionId.value()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<FirstGuess> findRecentFirstGuesses(UserId userId, MapId mapId, int games) {
         return toFirstGuesses(userGames.findRecentFirstGuesses(userId.value(), mapId.value(), games));
     }
 
+    /**
+     * Finds the player's best game on a map through the {@code leaderboard} table.
+     *
+     * @param userId the player
+     * @param mapId  the map
+     * @return the best game, or empty if none
+     */
     @Override
     public Optional<GameRecord> findBestGame(UserId userId, MapId mapId) {
         return userGames.findBestGame(userId.value(), mapId.value()).map(this::restore);
     }
 
+    /**
+     * Saves a game as the player's {@code leaderboard} row for its map, replacing the old one.
+     *
+     * @param gameRecord the new best game
+     */
     @Override
     public void saveBestGame(GameRecord gameRecord) {
         userGames.saveBestGame(
@@ -108,6 +163,9 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 gameRecord.getScore().accuracyPercent());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<EarnedTrophy> findTrophies(UserId userId) {
         return userGames.findTrophies(userId.value()).stream()
@@ -117,12 +175,18 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 .toList();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void addTrophies(UserId userId, Set<Trophy> trophies, Instant awardedAt) {
         LocalDateTime awardedAtLocal = LocalDateTime.ofInstant(awardedAt, ZoneId.systemDefault());
         trophies.forEach(trophy -> userGames.addTrophy(userId.value(), trophy.name(), awardedAtLocal));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<MapBest> findBestPerMap(UserId userId) {
         return userGames.findBestPerMap(userId.value()).stream()
@@ -136,11 +200,17 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 .toList();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Optional<OverallRank> findOverallRank(UserId userId) {
         return userGames.findOverallRank(userId.value()).map(row -> new OverallRank(row.getPlace(), row.getPlayers()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<LeaderboardEntry> findLeaderboard(MapId mapId, int limit) {
         return userGames.findLeaderboard(mapId.value(), limit).stream()
@@ -153,6 +223,12 @@ public class JpaGameRecordRepository implements GameRecordRepository {
                 .toList();
     }
 
+    /**
+     * Deletes the player's trophies and games. Guesses and
+     * leaderboard rows are removed by the database's cascading deletes.
+     *
+     * @param userId the player
+     */
     @Override
     @Transactional
     public void deleteAllForUser(UserId userId) {

@@ -6,8 +6,22 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 
+/**
+ * How many UTC days in a row a player has finished at least one game.
+ *
+ * @param currentDays the streak running now, or 0 if it has ended
+ * @param bestDays    the longest streak ever
+ */
 public record PlayStreak(int currentDays, int bestDays) {
 
+    /**
+     * Works out the streak from a player's finished games. Not having played yet
+     * today does not break the current streak.
+     *
+     * @param finishedGames the player's finished games
+     * @param now           the current time
+     * @return the current and best streak
+     */
     public static PlayStreak from(List<GameRecord> finishedGames, Instant now) {
         List<LocalDate> days = finishedGames.stream()
                 .map(game -> dayOf(game.getFinishedAt()))

@@ -1,4 +1,3 @@
-// Passes quiz events on and logs any listener failure, so another feature can't break gameplay.
 package com.anyguessr.anyguessrbackend.gameplay.infrastructure;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
@@ -9,6 +8,10 @@ import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Decorator that passes quiz events on to another listener and logs any failure
+ * instead of throwing, so stats can't break gameplay if it ever fails.
+ */
 public class SafeQuizEventListener implements QuizEventListener {
 
     private static final Logger log =
@@ -16,6 +19,12 @@ public class SafeQuizEventListener implements QuizEventListener {
 
     private final QuizEventListener listener;
 
+    /**
+     * Wraps a listener.
+     *
+     * @param listener the listener to pass events to
+     * @throws IllegalArgumentException if it is {@code null}
+     */
     public SafeQuizEventListener(
             QuizEventListener listener
     ) {
@@ -28,6 +37,9 @@ public class SafeQuizEventListener implements QuizEventListener {
         this.listener = listener;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void quizStarted(
             QuizSessionId sessionId,
@@ -45,6 +57,9 @@ public class SafeQuizEventListener implements QuizEventListener {
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void guessMade(
             QuizSessionId sessionId,
@@ -68,6 +83,9 @@ public class SafeQuizEventListener implements QuizEventListener {
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void quizFinished(
             QuizSessionId sessionId,
