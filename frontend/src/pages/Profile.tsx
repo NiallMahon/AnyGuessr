@@ -17,6 +17,7 @@ type UserProfile = {
     gamesPlayed: number;
 };
 
+// Searchable list of the player's friends.
 function FriendsCard() {
     const [search, setSearch] = useState("");
     const matches = FRIENDS.filter((friend) => friend.name.toLowerCase().includes(search.trim().toLowerCase()));
@@ -45,7 +46,6 @@ function FriendsCard() {
                                 <strong>{friend.name}</strong>
                                 <span>{friend.location}</span>
                             </span>
-                            <span className="trophy-badge">{friend.status}</span>
                         </li>
                     ))}
                 </ul>
@@ -54,12 +54,14 @@ function FriendsCard() {
     );
 }
 
+// The logged-in player's profile page.
 function Profile() {
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState<number | null>(null);
     useEffect(() => {
+        // Loads the logged-in player's profile.
         async function fetchProfile() {
            try {
             const response = await fetch("http://localhost:8080/profile/me", {
@@ -85,6 +87,7 @@ function Profile() {
         fetchProfile();
     },[]);
 
+    // Logs the player out.
     function handleLogout() {
         sessionStorage.removeItem("userId");
         window.location.href = "http://localhost:8080/logout";
@@ -93,6 +96,7 @@ function Profile() {
     const [stats, setStats] = useState<UserStats | null>(null);
     const [statsError, setStatsError] = useState<string | null>(null);
     useEffect(() => {
+        // Loads the player's stats once their user ID is known.
         async function fetchStats() {
             if (userId == null) {
                 return;

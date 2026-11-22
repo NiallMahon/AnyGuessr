@@ -1,8 +1,8 @@
-// One map's stats for the logged-in player: rank and pace tiles, badges, accuracy and time by game, weak regions and friends compared.
+// One map's stats for the logged-in player: displays rank tiles, badges, accuracy/time by game, weak regions and comparison to friends per map.
 import "../components/ProfileStats.css";
 import {useEffect, useState} from "react";
 import {Link, useParams} from "react-router-dom";
-import {score, verdict} from "../components/MapLeaderboard";
+import {score} from "../components/MapLeaderboard";
 import {BadgeRow} from "../components/ProfileStats";
 import {
     fetchComparison,
@@ -25,10 +25,12 @@ const CHART_PAD_X = 36;
 const CHART_PAD_Y = 22;
 const WEAK_ROWS = 8;
 
+// Formats seconds per target, e.g. 2.4s.
 function formatPace(seconds: number | null) {
     return seconds === null ? "-" : `${seconds.toFixed(1)}s`;
 }
 
+// A single stat with a label and caption.
 function StatTile({label, value, caption}: {label: string; value: string; caption: string}) {
     return (
         <div className="stat-tile">
@@ -39,15 +41,18 @@ function StatTile({label, value, caption}: {label: string; value: string; captio
     );
 }
 
+// Works out a game's x position on the progress chart.
 function chartX(index: number, count: number) {
     const span = CHART_WIDTH - 2 * CHART_PAD_X;
     return CHART_PAD_X + (count === 1 ? span / 2 : index * span / (count - 1));
 }
 
+// Works out a value's y position on the progress chart.
 function chartY(fraction: number) {
     return CHART_HEIGHT - CHART_PAD_Y - fraction * (CHART_HEIGHT - 2 * CHART_PAD_Y);
 }
 
+// Card listing the map's badges.
 function Badges({badges}: {badges: MapBadge[]}) {
     const earned = badges.filter((badge) => badge.earned).length;
 
@@ -67,6 +72,7 @@ function Badges({badges}: {badges: MapBadge[]}) {
     );
 }
 
+// One line on the progress chart.
 function ChartLine({name, fractions, tips}: {name: string; fractions: number[]; tips: string[]}) {
     const points = fractions.map((fraction, index) => [chartX(index, fractions.length), chartY(fraction)]);
     const line = points.map((point) => point.join(",")).join(" ");
@@ -89,6 +95,7 @@ function ChartLine({name, fractions, tips}: {name: string; fractions: number[]; 
     );
 }
 
+// Chart of accuracy and time taken across recent games.
 function ProgressChart({games, firstGame}: {games: RecentGame[]; firstGame: number}) {
     const slowest = Math.ceil(Math.max(...games.map((game) => game.durationSeconds), 1) / 10) * 10;
     const lastGame = firstGame + games.length - 1;
@@ -125,6 +132,7 @@ function ProgressChart({games, firstGame}: {games: RecentGame[]; firstGame: numb
     );
 }
 
+// Card listing the regions most often got wrong.
 function WeakRegions({regions}: {regions: WeakRegion[]}) {
     return (
         <div className="stats-card">
@@ -149,6 +157,7 @@ function WeakRegions({regions}: {regions: WeakRegion[]}) {
     );
 }
 
+// Ranks user against friends for a given map.
 function FriendCompare({userId, best}: {userId: number; best: MapBest}) {
     const [rows, setRows] = useState<MapComparison[] | null>(null);
     const [failed, setFailed] = useState(false);
@@ -161,6 +170,11 @@ function FriendCompare({userId, best}: {userId: number; best: MapBest}) {
             .catch(() => setFailed(true));
     }, [userId, best]);
 
+    const players = rows === null ? [] : [
+        {userId, name: "You", best},
+        ...FRIENDS.map((friend, index) => ({userId: friend.userId, name: friend.name, best: rows[index].theirs}))
+    ].sort((a, b) => (a.best?.place ?? Infinity) - (b.best?.place ?? Infinity));
+
     return (
         <div className="stats-card">
             <header className="stats-card-header">
@@ -171,22 +185,23 @@ function FriendCompare({userId, best}: {userId: number; best: MapBest}) {
                 : failed ? <p className="stats-card-empty">Could not load this comparison.</p>
                 : rows === null ? <p className="stats-card-empty">Loading...</p>
                 : (
-                    <ul className="stats-map-rows stats-scroll capped">
-                        {FRIENDS.map((friend, index) => (
-                            <li key={friend.userId} className="stats-map-row">
-                                <span className="stats-row-main">
-                                    <strong>{friend.name}</strong>
-                                    <span>{score(rows[index].theirs)}</span>
+                    <ol className="stats-rows stats-scroll">
+                        {players.map((player) => (
+                            <li key={player.userId} className={player.userId === userId ? "leaderboard-you" : undefined}>
+                                <span className="leaderboard-place">
+                                    {player.best === null ? "-" : `#${players.findIndex((other) => other.best?.place === player.best?.place) + 1}`}
                                 </span>
-                                <span className="trophy-badge">{verdict(rows[index])}</span>
+                                <strong className="stats-row-main">{player.name}</strong>
+                                <span>{score(player.best)}</span>
                             </li>
                         ))}
-                    </ul>
+                    </ol>
                 )}
         </div>
     );
 }
 
+// Page showing the player's stats for a given map.
 function MapStats() {
     const {mapId} = useParams();
     const [detail, setDetail] = useState<MapDetail | null>(null);
