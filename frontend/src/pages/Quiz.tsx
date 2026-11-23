@@ -1,4 +1,4 @@
-// Plays a quiz, then shows the result and offers another go.
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
@@ -7,6 +7,7 @@ import {
   type GuessResponse,
 } from "../services/gameplayAPI";
 import GameResult from "../components/GameResult";
+import QuizMap from "../components/Map/QuizMap";
 
 interface QuizLocationState {
   sessionId: string;
@@ -14,6 +15,12 @@ interface QuizLocationState {
   initialTarget: string;
 }
 
+/**
+ * Displays an active quiz and handles gameplay progress.
+ *
+ * Players select regions by clicking polygons on the map.
+ * Guess evaluation and scoring are handled by the backend.
+ */
 function Quiz() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,9 +58,7 @@ function Quiz() {
         </p>
 
         <button
-          onClick={() =>
-            navigate("/mapselector")
-          }
+          onClick={() => navigate("/mapselector")}
         >
           Choose a map
         </button>
@@ -64,44 +69,44 @@ function Quiz() {
   const sessionId = quizState.sessionId;
   const mapId = quizState.mapId;
 
+  /**
+   * Starts a new quiz using the same selected map.
+   */
   async function playAgain() {
     const userId =
       sessionStorage.getItem("userId");
 
+    setError(null);
+
     try {
-      const quiz =
-        await startQuiz(
-          mapId,
-          userId === null
-            ? null
-            : Number(userId)
-        );
+      const quiz = await startQuiz(
+        mapId,
+        userId === null
+          ? null
+          : Number(userId)
+      );
 
       navigate("/quiz", {
         state: {
-          sessionId:
-            quiz.sessionId,
-
-          mapId:
-            quiz.mapId,
-
-          initialTarget:
-            quiz.currentTarget,
+          sessionId: quiz.sessionId,
+          mapId: quiz.mapId,
+          initialTarget: quiz.currentTarget,
         },
       });
-
     } catch (err) {
       console.error(err);
 
-      setError(
-        "Unable to start the quiz."
-      );
+      setError("Unable to start the quiz.");
     }
   }
 
-  async function handleGuess(
-    regionId: string
-  ) {
+  /**
+   * Sends the clicked polygon's region ID to the backend.
+   *
+   * Updates feedback, progress, correction state and score
+   * using the response returned by the gameplay API.
+   */
+  async function handleGuess(regionId: string) {
     if (
       sending ||
       lastResult?.quizComplete
@@ -116,11 +121,10 @@ function Quiz() {
     setError(null);
 
     try {
-      const result =
-        await submitGuess(
-          sessionId,
-          regionId
-        );
+      const result = await submitGuess(
+        sessionId,
+        regionId
+      );
 
       setLastResult(result);
 
@@ -139,21 +143,14 @@ function Quiz() {
         );
       } else if (result.correct) {
         setMessage("Correct!");
-      } else if (
-        result.correctionRequired
-      ) {
-        setMessage(
-          `Incorrect. Click region ${result.targetRegionId} to continue.`
+      } else if (result.correctionRequired) {
+        setMessage("Incorrect. Select the requested region to continue."
         );
       }
-
     } catch (err) {
       console.error(err);
 
-      setError(
-        "Unable to submit the guess."
-      );
-
+      setError("Unable to submit the guess.");
     } finally {
       setSending(false);
     }
@@ -168,60 +165,30 @@ function Quiz() {
     >
       <h1>Core Quiz Gameplay</h1>
 
-      <p>
-        Map: {mapId}
-      </p>
+      <p>Map: {mapId}</p>
 
       {!lastResult?.quizComplete && (
         <>
-          <h2>
-            Find region: {currentTarget}
-          </h2>
-
           <p>
             Click the region you think is correct.
           </p>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "1rem",
-              marginTop: "2rem",
+          {/* Display the selected map and its clickable polygons. */}
+          <QuizMap
+	    key={mapId}
+            mapId={mapId}
+	    targetRegionId={currentTarget}
+            disabled={sending}
+            onRegionClick={(regionId) => {
+              void handleGuess(regionId);
             }}
-          >
-            <button
-              disabled={sending}
-              onClick={() =>
-                handleGuess("1")
-              }
-            >
-              Region 1
-            </button>
-
-            <button
-              disabled={sending}
-              onClick={() =>
-                handleGuess("2")
-              }
-            >
-              Region 2
-            </button>
-
-            <button
-              disabled={sending}
-              onClick={() =>
-                handleGuess("3")
-              }
-            >
-              Region 3
-            </button>
-          </div>
+          />
         </>
       )}
 
       {message && (
         <h2
+          aria-live="polite"
           style={{
             marginTop: "2rem",
           }}
@@ -274,12 +241,16 @@ function Quiz() {
       )}
 
       {error && (
-        <p>{error}</p>
+        <p role="alert">{error}</p>
       )}
     </div>
   );
 }
 
+/**
+ * Remounts the quiz when the navigation entry changes
+ * so that a new session starts with fresh component state.
+ */
 function QuizPage() {
   const location = useLocation();
 
