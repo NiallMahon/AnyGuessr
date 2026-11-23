@@ -1,50 +1,214 @@
-/* Map selector rows: each map card with its leaderboard beside it. */
+/* AnyGuessr — Map Selector */
+
+.map-selector {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 30px 24px 72px;
+  text-align: left;
+}
+
+.map-selector-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.map-selector-header h1 {
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  margin: 12px 0;
+}
+
+.map-selector-header p {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.map-grid {
+  display: grid;
+  gap: 24px;
+}
+
 .map-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 16px;
-    align-items: start;
-    max-width: 1100px;
-    margin: 0 auto 24px;
-    padding: 0 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  align-items: stretch;
+  gap: 20px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.map-card,
+.map-row .map-leaderboard {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--stats-surface, var(--bg));
+  overflow: hidden;
+}
+
+.map-card {
+  text-align: left;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.map-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.map-card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .map-image-container {
-width: 100%;
-height: 220px;
-display: flex;
-align-items: center;
-justify-content: center;
-border-radius: 12px;
-overflow: hidden;
+  width: 100%;
+  height: 210px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--stats-surface-2, var(--code-bg));
 }
 
 .map-card img {
-display: block;
-width: 100%;
-height: 100%;
-object-fit: contain;
-border-radius: 12px;
-}
-
-.map-leaderboard .stats-rows {
-    max-height: 320px;
-    overflow-y: auto;
-}
-
-@media (max-width: 800px) {
-    .map-row {
-        grid-template-columns: 1fr;
-    }
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .map-no-image {
-    width: 100%;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #e5e5e5;
-    color: #555;
-    border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(139, 92, 246, 0.16),
+      transparent 65%
+    ),
+    var(--stats-surface-2, var(--code-bg));
+  color: var(--stats-muted, var(--text));
+  font-size: 14px;
+}
+
+.map-card-content {
+  padding: 20px 22px 22px;
+}
+
+.map-card-content h2 {
+  margin: 0 0 10px;
+  color: var(--text-h);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.map-card-content > p {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.map-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.map-card-footer .difficulty {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.map-card-footer > span:last-child {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #6d5de6;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.map-row .map-leaderboard {
+  box-sizing: border-box;
+  padding: 22px;
+  text-align: left;
+}
+
+.map-row .stats-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.map-row .stats-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.map-row .stats-card-header span {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.map-row .stats-card-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--text);
+}
+
+.map-leaderboard .stats-rows {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+@media (max-width: 800px) {
+  .map-selector {
+    padding: 20px 16px 48px;
+  }
+
+  .map-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .map-image-container {
+    height: 190px;
+  }
+
+  .map-card-content {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-card {
+    transition: none;
+  }
+
+  .map-card:hover {
+    transform: none;
+  }
 }
