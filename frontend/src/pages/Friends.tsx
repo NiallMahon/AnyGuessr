@@ -3,45 +3,53 @@ import { useState, useEffect } from "react";
 
 type Friend = {
     id: number;
+    userId: string;
     name: string;
+    username: string;
     location: string;
     initials: string;
     gamesPlayed: number;
     status: string;
+    duelLinkId: string;
 };
 
 function Friends() {
+    const [currentUserId, setCurrentUserId] = useState("user123");
     const [friends, setFriends] = useState<Friend[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [newFriendName, setNewFriendName] = useState("");
+    const [newFriendUsername, setNewFriendUsername] = useState("");
     const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
 
-    // 1. Fetch friends from the backend when the component loads
     useEffect(() => {
-        fetch("http://localhost:8080/friends/1")
-            .then((res) => res.json())
-            .then((data) => {
-                setFriends(data);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch friends from backend:", err);
-                setLoading(false);
-            });
-    }, []);
+        fetchFriends();
+    }, [currentUserId]);
 
-    // Filter friends based on search query
+    const fetchFriends = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`http://localhost:8080/api/friends/user/${currentUserId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setFriends(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch friends from backend:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const filteredFriends = friends.filter((friend) =>
+        friend.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
         friend.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // 2. Add a new friend via backend POST request
     const handleAddFriend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newFriendName.trim()) return;
+        if (!newFriendUsername.trim()) return;
 
-        const initials = newFriendName
+        const initials = newFriendUsername
             .split(" ")
             .map((n) => n[0])
             .join("")
@@ -49,15 +57,18 @@ function Friends() {
             .slice(0, 2);
 
         const newFriendPayload = {
-            name: newFriendName.trim(),
+            userId: currentUserId,
+            name: newFriendUsername.trim(),
+            username: newFriendUsername.trim(),
             location: "Unknown",
             initials: initials || "U",
             gamesPlayed: 0,
             status: "Online",
+            duelLinkId: "duel-" + Math.random().toString(36).substring(2, 9),
         };
 
         try {
-            const response = await fetch("http://localhost:8080/friends", {
+            const response = await fetch("http://localhost:8080/api/friends", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -68,19 +79,18 @@ function Friends() {
             if (response.ok) {
                 const savedFriend = await response.json();
                 setFriends([...friends, savedFriend]);
-                setNewFriendName("");
+                setNewFriendUsername("");
             }
         } catch (err) {
             console.error("Error adding friend:", err);
         }
     };
 
-    // 3. Delete a friend via backend DELETE request
     const handleDeleteFriend = async (id: number, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent triggering the profile view click
+        e.stopPropagation();
 
         try {
-            const response = await fetch(`http://localhost:8080/friends/${id}`, {
+            const response = await fetch(`http://localhost:8080/api/friends/${id}`, {
                 method: "DELETE",
             });
 
@@ -103,12 +113,23 @@ function Friends() {
                     <p>Connect, search, and view your gaming network</p>
                 </div>
 
+                <div className="user-switcher" style={{ marginBottom: "10px" }}>
+                    <label style={{ marginRight: "8px", fontWeight: "bold" }}>Current User ID:</label>
+                    <input
+                        type="text"
+                        value={currentUserId}
+                        onChange={(e) => setCurrentUserId(e.target.value)}
+                        className="friends-input"
+                        style={{ width: "120px", display: "inline-block" }}
+                    />
+                </div>
+
                 <form className="friends-add-form" onSubmit={handleAddFriend}>
                     <input
                         type="text"
                         placeholder="Add friend username..."
-                        value={newFriendName}
-                        onChange={(e) => setNewFriendName(e.target.value)}
+                        value={newFriendUsername}
+                        onChange={(e) => setNewFriendUsername(e.target.value)}
                         className="friends-input"
                     />
                     <button className="friends-edit" type="submit">
@@ -180,9 +201,11 @@ function Friends() {
                             <div className="preview-details">
                                 <div className="preview-avatar"><span>{selectedFriend.initials}</span></div>
                                 <h3>{selectedFriend.name}</h3>
+                                <p><strong>Username:</strong> {selectedFriend.username}</p>
                                 <p><strong>Location:</strong> {selectedFriend.location}</p>
                                 <p><strong>Games Played:</strong> {selectedFriend.gamesPlayed}</p>
                                 <p><strong>Status:</strong> {selectedFriend.status}</p>
+                                <p><strong>Duel Link ID:</strong> {selectedFriend.duelLinkId}</p>
                             </div>
                         ) : (
                             <p className="preview-placeholder">Click on any friend from the list to view their mini-profile details.</p>
