@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 #Ignore idea
 .idea/
 *.iml
+
+#Ignore images
+backend/uploads/

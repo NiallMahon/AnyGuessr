@@ -5,10 +5,9 @@ function Home() {
   return (
     <div>
       <h1>Welcome to AnyGuessr!</h1>
-      <p>Test your knowledge and guess the answers!</p>
       <br></br>
       <br></br>
-      <h1><Link className="map-link" to="/map">Start</Link></h1>
+      <h1>A software engineering project</h1>
     </div>
   );
 }
