@@ -1,6 +1,6 @@
-// Profile stats pieces: rank and streak, maps played with search, trophies, deleting your stats, and shared badge rows and pop-ups.
+// Profile stats pieces: rank and streak, maps played, trophies, stats deletion (GDPR comppliance), and shared badge rows.
 import "./ProfileStats.css";
-import {type ReactNode, useEffect, useRef, useState} from "react";
+import {useState} from "react";
 import {Link} from "react-router-dom";
 import {
     deleteUserStats,
@@ -11,6 +11,7 @@ import {
     type UserStats
 } from "../services/statsAPI";
 
+// Shows the player's overall rank and daily streak.
 export function RankAndStreak({stats}: {stats: UserStats}) {
     const streak = stats.currentStreakDays;
 
@@ -29,30 +30,7 @@ export function RankAndStreak({stats}: {stats: UserStats}) {
     );
 }
 
-export function Popup({title, open, onClose, children}: {title: string; open: boolean; onClose: () => void; children: ReactNode}) {
-    const ref = useRef<HTMLDialogElement>(null);
-
-    useEffect(() => {
-        const dialog = ref.current;
-        if (open && dialog && !dialog.open) {
-            dialog.showModal();
-        }
-        if (!open && dialog?.open) {
-            dialog.close();
-        }
-    }, [open]);
-
-    return (
-        <dialog ref={ref} className="stats-dialog" onClose={onClose}>
-            <header className="stats-card-header">
-                <h3>{title}</h3>
-                <button type="button" className="stats-link" onClick={onClose}>Close</button>
-            </header>
-            {children}
-        </dialog>
-    );
-}
-
+// One trophy or badge tile, highlighted when earned.
 export function BadgeRow({title, status, earned, tip}: {title: string; status: string; earned: boolean; tip: string}) {
     return (
         <div className={`badge${earned ? " earned" : ""}`} title={tip}>
@@ -62,6 +40,7 @@ export function BadgeRow({title, status, earned, tip}: {title: string; status: s
     );
 }
 
+// Returns a trophy's status: Unlocked, Locked or progress like 3 of 10.
 function trophyStatus(trophy: Trophy) {
     if (trophy.awardedAt) {
         return "Unlocked";
@@ -69,6 +48,7 @@ function trophyStatus(trophy: Trophy) {
     return trophy.goal === 1 ? "Locked" : `${trophy.progress} of ${trophy.goal}`;
 }
 
+// Card listing every trophy and how many are earned.
 export function TrophyShelf({trophies}: {trophies: Trophy[]}) {
     const earned = trophies.filter((trophy) => trophy.awardedAt !== null).length;
 
@@ -88,6 +68,7 @@ export function TrophyShelf({trophies}: {trophies: Trophy[]}) {
     );
 }
 
+// Searchable list of the maps the player has finished.
 export function MapsPlayed({maps}: {maps: MapBest[]}) {
     const [search, setSearch] = useState("");
     const matches = maps.filter((map) => map.mapName.toLowerCase().includes(search.trim().toLowerCase()));
@@ -129,9 +110,11 @@ export function MapsPlayed({maps}: {maps: MapBest[]}) {
     );
 }
 
+// Privacy note with a button to delete all your stats.
 export function DeleteStats({userId, onStatsDeleted}: {userId: number; onStatsDeleted: () => Promise<void>}) {
     const [error, setError] = useState<string | null>(null);
 
+    // Confirms, deletes the stats and reloads them.
     async function deleteStats() {
         if (!window.confirm("Delete all your games, best scores and trophies? This can't be undone.")) {
             return;

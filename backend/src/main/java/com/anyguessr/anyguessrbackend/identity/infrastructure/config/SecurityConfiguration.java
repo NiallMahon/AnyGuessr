@@ -24,10 +24,10 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http, CognitoUserProvisioningService provisioningService) throws Exception {
         CognitoLogoutHandler cognitoLogoutHandler = new CognitoLogoutHandler();
 
-        http.csrf(Customizer.withDefaults())
+        http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/").permitAll()
+                .requestMatchers("/", "/api/**", "/error").permitAll()
                         .anyRequest()
                         .authenticated())
 

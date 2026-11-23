@@ -13,6 +13,9 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
+/**
+ * JPA entity for one row of the {@code user_games} table: a player's game on a map.
+ */
 @Entity
 @Table(name = "user_games")
 public class UserGameEntity {
@@ -48,9 +51,20 @@ public class UserGameEntity {
     @Column(name = "incorrect_guesses", nullable = false)
     private int incorrectGuesses;
 
+    /**
+     * Empty constructor required by JPA.
+     */
     protected UserGameEntity() {
     }
 
+    /**
+     * Creates an unfinished game row.
+     *
+     * @param sessionId the quiz session
+     * @param userId    the player
+     * @param mapId     the map being played
+     * @param startedAt when the game started
+     */
     public UserGameEntity(String sessionId, long userId, long mapId, Instant startedAt) {
         this.sessionId = sessionId;
         this.userId = userId;
@@ -58,34 +72,74 @@ public class UserGameEntity {
         this.startedAt = startedAt;
     }
 
+    /**
+     * Returns the database ID, or {@code null} before the row is saved.
+     *
+     * @return the database ID, or {@code null} before the row is saved
+     */
     public Long getGameId() {
         return gameId;
     }
 
+    /**
+     * Returns the quiz session.
+     *
+     * @return the quiz session
+     */
     public String getSessionId() {
         return sessionId;
     }
 
+    /**
+     * Returns the player.
+     *
+     * @return the player
+     */
     public long getUserId() {
         return userId;
     }
 
+    /**
+     * Returns the map played.
+     *
+     * @return the map played
+     */
     public long getMapId() {
         return mapId;
     }
 
+    /**
+     * Returns when the game started.
+     *
+     * @return when the game started
+     */
     public Instant getStartedAt() {
         return startedAt;
     }
 
+    /**
+     * Returns when the game finished, or {@code null} if it has not.
+     *
+     * @return when the game finished, or {@code null} if it has not
+     */
     public Instant getFinishedAt() {
         return finishedAt;
     }
 
+    /**
+     * Returns targets right on the first try.
+     *
+     * @return targets right on the first try
+     */
     public int getCorrectGuesses() {
         return correctGuesses;
     }
 
+    /**
+     * Returns targets wrong on the first try.
+     *
+     * @return targets wrong on the first try
+     */
     public int getIncorrectGuesses() {
         return incorrectGuesses;
     }

@@ -9,6 +9,10 @@ import {
 import GameResult from "../components/GameResult";
 import QuizMap from "../components/Map/QuizMap";
 
+/**
+ * Quiz session details passed from the map selector
+ * through React Router navigation state.
+ */
 interface QuizLocationState {
   sessionId: string;
   mapId: string;

@@ -31,12 +31,37 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Application service for player stats. Records games from gameplay, updates scores/trophies,
+ * and builds the profile, map detail, game result, comparison and leaderboard views.
+ */
 public class StatsService {
 
+    /**
+     * A trophy and how close the player is to it.
+     *
+     * @param trophy    the trophy
+     * @param awardedAt when it was earned, or {@code null} if not earned yet
+     * @param progress  progress toward the trophy's goal
+     */
     public record TrophyStatus(Trophy trophy, Instant awardedAt, int progress) {}
 
+    /**
+     * A map badge and whether the player has earned it.
+     *
+     * @param badge  the badge
+     * @param earned whether it is earned
+     */
     public record BadgeStatus(MapBadge badge, boolean earned) {}
 
+    /**
+     * Everything shown on a player's profile stats.
+     *
+     * @param trophies    every trophy with the player's progress
+     * @param bestPerMap  the player's best game on each map
+     * @param streak      the player's daily play streak
+     * @param overallRank the player's overall place, or {@code null} if unranked
+     */
     public record UserStats(
             List<TrophyStatus> trophies,
             List<MapBest> bestPerMap,
@@ -45,6 +70,15 @@ public class StatsService {
     ) {
     }
 
+    /**
+     * A player's stats on one map.
+     *
+     * @param totals      totals across all games on the map
+     * @param best        the best game on the map, or {@code null}
+     * @param recentGames the latest finished games on the map
+     * @param weakRegions regions the player keeps getting wrong
+     * @param badges      every map badge and whether it is earned
+     */
     public record MapDetail(
             PlayerTotals totals,
             MapBest best,
@@ -54,6 +88,16 @@ public class StatsService {
     ) {
     }
 
+    /**
+     * The result screen for one finished game.
+     *
+     * @param game          the finished game
+     * @param previousBest  the best game on this map before this one, or {@code null}
+     * @param mapBest       the current best on this map and its leaderboard place
+     * @param streak        the player's daily play streak
+     * @param newTrophies   trophies this game earned
+     * @param missedRegions targets missed on the first try
+     */
     public record GameResult(
             GameRecord game,
             GameRecord previousBest,
@@ -63,13 +107,29 @@ public class StatsService {
             List<String> missedRegions
     ) {
 
+        /**
+         * Returns {@code true} if this game beat the previous best on the map, or there was none.
+         *
+         * @return {@code true} if this game beat the previous best on the map, or there was none
+         */
         public boolean isNewBest() {
             return previousBest == null || game.isBetterThan(previousBest);
         }
     }
 
+    /**
+     * Two players' best games on the same map.
+     *
+     * @param yours  the first player's best, or {@code null} if they have not played it
+     * @param theirs the other player's best, or {@code null} if they have not played it
+     */
     public record MapComparison(MapBest yours, MapBest theirs) {
 
+        /**
+         * Returns whichever best is present, used for the map's ID and name.
+         *
+         * @return whichever best is present, used for the map's ID and name
+         */
         public MapBest either() {
             return yours != null ? yours : theirs;
         }
@@ -81,6 +141,13 @@ public class StatsService {
     private final GameRecordRepository gameRecordRepository;
     private final Clock clock;
 
+    /**
+     * Creates the service.
+     *
+     * @param gameRecordRepository where stats are stored
+     * @param clock                the clock used for game and trophy times
+     * @throws IllegalArgumentException if either argument is {@code null}
+     */
     public StatsService(GameRecordRepository gameRecordRepository, Clock clock) {
         if (gameRecordRepository == null || clock == null) {
             throw new IllegalArgumentException("Game record repository and clock must not be null");
@@ -90,14 +157,34 @@ public class StatsService {
         this.clock = clock;
     }
 
+    /**
+     * Records the start of a game.
+     *
+     * @param sessionId the quiz session
+     * @param userId    the player
+     * @param mapId     the map being played
+     */
     public void startGame(GameSessionId sessionId, UserId userId, MapId mapId) {
         gameRecordRepository.add(GameRecord.start(sessionId, userId, mapId, clock.instant()));
     }
 
+    /**
+     * Records a guess made in a game.
+     *
+     * @param sessionId the quiz session
+     * @param guess     the guess
+     */
     public void recordGuess(GameSessionId sessionId, GameRecord.Guess guess) {
         gameRecordRepository.addGuess(sessionId, guess, clock.instant());
     }
 
+    /**
+     * Finishes a game, then updates the player's best on that map and awards any
+     * new trophies. Does nothing if the game was never started.
+     *
+     * @param sessionId the quiz session
+     * @param score     the final score
+     */
     public void finishGame(GameSessionId sessionId, Score score) {
         gameRecordRepository.findBySessionId(sessionId).ifPresent(gameRecord -> {
             Instant now = clock.instant();
@@ -108,6 +195,12 @@ public class StatsService {
         });
     }
 
+    /**
+     * Returns the player's profile stats.
+     *
+     * @param userId the player
+     * @return the player's profile stats
+     */
     public UserStats getUserStats(UserId userId) {
         Instant now = clock.instant();
         List<GameRecord> games = gameRecordRepository.findFinishedGames(userId);
@@ -120,6 +213,13 @@ public class StatsService {
         );
     }
 
+    /**
+     * Returns the player's stats on the map.
+     *
+     * @param userId the player
+     * @param mapId  the map
+     * @return the player's stats on the map
+     */
     public MapDetail getMapDetail(UserId userId, MapId mapId) {
         PlayerTotals totals = gameRecordRepository.findTotalsOnMap(userId, mapId);
         MapBest best = bestByMap(userId).get(mapId);
@@ -135,12 +235,25 @@ public class StatsService {
         );
     }
 
+    /**
+     * Returns the game's result, or empty if the game is unknown or not finished.
+     *
+     * @param sessionId the quiz session
+     * @return the game's result, or empty if the game is unknown or not finished
+     */
     public Optional<GameResult> getGameResult(GameSessionId sessionId) {
         return gameRecordRepository.findBySessionId(sessionId)
                 .filter(GameRecord::isFinished)
                 .map(this::resultOf);
     }
 
+    /**
+     * Compares two players' best games on every map either of them has played.
+     *
+     * @param userId  the first player
+     * @param otherId the other player
+     * @return one comparison per map, sorted by map name
+     */
     public List<MapComparison> compare(UserId userId, UserId otherId) {
         Map<MapId, MapBest> yours = bestByMap(userId);
         Map<MapId, MapBest> theirs = bestByMap(otherId);
@@ -152,10 +265,21 @@ public class StatsService {
                 .toList();
     }
 
+    /**
+     * Returns the top 100 players on the map, best first.
+     *
+     * @param mapId the map
+     * @return the top 100 players on the map, best first
+     */
     public List<LeaderboardEntry> getLeaderboard(MapId mapId) {
         return gameRecordRepository.findLeaderboard(mapId, LEADERBOARD_SIZE);
     }
 
+    /**
+     * Deletes all of a player's stats.
+     *
+     * @param userId the player
+     */
     public void deleteUserStats(UserId userId) {
         gameRecordRepository.deleteAllForUser(userId);
     }
@@ -222,6 +346,12 @@ public class StatsService {
         );
     }
 
+    /**
+     * Returns how many games the player has finished.
+     *
+     * @param userId the player
+     * @return how many games the player has finished
+     */
     public int getGamesPlayed(UserId userId) {
         return gameRecordRepository.findFinishedGames(userId).size();
     }

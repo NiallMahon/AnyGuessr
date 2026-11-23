@@ -1,8 +1,9 @@
-// A finished quiz: score against your best, map place, streak, new trophies and missed regions.
+// Result for a finished quiz: score against your best, map place, streak, new trophies and missed regions.
 import "./ProfileStats.css";
 import {useEffect, useState} from "react";
 import {fetchGameResult, formatPercent, formatTime, type GameResult as Result} from "../services/statsAPI";
 
+// Picks the result heading by comparing this game with your previous best.
 function headline(result: Result) {
     if (result.previousBestPercent === null) {
         return "First score on this map";
@@ -15,6 +16,7 @@ function headline(result: Result) {
         : "Not your best this time";
 }
 
+// Result card shown when a quiz finishes.
 function GameResult({sessionId}: {sessionId: string}) {
     const [result, setResult] = useState<Result | null>(null);
 
