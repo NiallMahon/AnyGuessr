@@ -1,5 +1,7 @@
+// Tests for the quiz REST endpoints.
 package com.anyguessr.anyguessrbackend.gameplay.ui;
 
+import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
 import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.application.SubmitGuessUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
@@ -38,11 +40,15 @@ class QuizControllerTest {
         StartQuizUseCase startQuizUseCase =
                 new StartQuizUseCase(
                         repository,
-                        mapRepository
+                        mapRepository,
+                        QuizEventListener.NONE
                 );
 
         SubmitGuessUseCase submitGuessUseCase =
-                new SubmitGuessUseCase(repository);
+                new SubmitGuessUseCase(
+                        repository,
+                        QuizEventListener.NONE
+                );
 
         QuizController controller =
                 new QuizController(
@@ -51,7 +57,7 @@ class QuizControllerTest {
                 );
 
         StartQuizRequest request =
-                new StartQuizRequest("world-map");
+                new StartQuizRequest("world-map", null);
 
         StartQuizResponse response =
                 controller.startQuiz(request);
@@ -94,11 +100,15 @@ class QuizControllerTest {
         StartQuizUseCase startQuizUseCase =
                 new StartQuizUseCase(
                         repository,
-                        mapRepository
+                        mapRepository,
+                        QuizEventListener.NONE
                 );
 
         SubmitGuessUseCase submitGuessUseCase =
-                new SubmitGuessUseCase(repository);
+                new SubmitGuessUseCase(
+                        repository,
+                        QuizEventListener.NONE
+                );
 
         QuizController controller =
                 new QuizController(
@@ -107,7 +117,7 @@ class QuizControllerTest {
                 );
 
         SubmitGuessRequest request =
-                new SubmitGuessRequest("FR");
+                new SubmitGuessRequest("FR", null, null);
 
         GuessResponse response =
                 controller.submitGuess(

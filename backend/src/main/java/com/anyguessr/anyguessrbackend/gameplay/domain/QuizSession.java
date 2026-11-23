@@ -7,6 +7,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+/**
+ * Represents a quiz session and manages its gameplay rules.
+ *
+ * Tracks target regions, submitted guesses, accuracy,
+ * quiz progress and completion.
+ */
+
 public class QuizSession {
 
     private final QuizSessionId sessionId;
@@ -20,10 +27,15 @@ public class QuizSession {
     private boolean correctionRequired;
     private QuizStatus status;
 
-    /*
-     * Normal constructor used by the application.
-     * Targets are placed into a random order.
-     */
+    /**
+     * Creates a new quiz session with targets in a random order.
+     *
+     * @param sessionId identifies the new quiz session
+     * @param mapId identifies the selected map
+     * @param targetRegionIds contains the regions used in the quiz
+     * @throws IllegalArgumentException if an argument is invalid
+    */
+
     public QuizSession(
             QuizSessionId sessionId,
             MapId mapId,
@@ -203,10 +215,12 @@ public class QuizSession {
         return currentTarget;
     }
 
-    /*
-     * Captures the complete state required to persist
-     * and later reconstruct this quiz session.
-     */
+    /**
+     * Captures the current quiz state for persistence.
+     *
+     * @return a snapshot containing the session's progress and state
+    */
+
     public QuizSessionSnapshot snapshot() {
         return new QuizSessionSnapshot(
                 sessionId,
@@ -221,10 +235,17 @@ public class QuizSession {
         );
     }
 
-    /*
-     * Reconstructs an existing session without reshuffling
-     * targets or resetting gameplay progress.
-     */
+    /**
+     * Reconstructs an existing quiz session from a saved snapshot.
+     *
+     * Restores the original target order and gameplay progress
+     * without creating a new session.
+     *
+     * @param snapshot contains the previously saved session state
+     * @return the restored quiz session
+     * @throws IllegalArgumentException if the snapshot is null
+    */
+
     public static QuizSession restore(
             QuizSessionSnapshot snapshot
     ) {
@@ -246,6 +267,20 @@ public class QuizSession {
                 snapshot.status()
         );
     }
+
+    /**
+     * Processes a selected region and updates the quiz state.
+     *
+     * The first attempt for each target affects the score.
+     * After an incorrect attempt, the player must select
+     * the correct region before progressing. Correction
+     * attempts do not change the recorded accuracy.
+     *
+     * @param selectedRegionId identifies the region selected
+     * @return the guess result and updated quiz progress
+     * @throws IllegalArgumentException if the region is invalid
+     * @throws IllegalStateException if the quiz is complete
+    */
 
     public GuessResult submitGuess(
             RegionId selectedRegionId
@@ -394,6 +429,7 @@ public class QuizSession {
                 correctionRequired,
                 selectedRegionId,
                 targetRegionId,
+                currentTarget,
                 correctAnswers,
                 answeredTargets,
                 accuracy,

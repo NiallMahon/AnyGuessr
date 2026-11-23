@@ -12,12 +12,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Persists quiz sessions using Spring Data JPA.
+ *
+ * Converts between domain snapshots and database entities,
+ * preserving target order, completion state and quiz progress.
+ */
 public class JpaQuizSessionRepository
         implements QuizSessionRepository {
 
     private final SpringDataQuizSessionRepository sessionRepository;
     private final SpringDataQuizSessionTargetRepository targetRepository;
 
+    /**
+     * Creates the repository with its persistence dependencies.
+     *
+     * @param sessionRepository stores quiz session entities
+     * @param targetRepository stores quiz target entities
+     */
     public JpaQuizSessionRepository(
             SpringDataQuizSessionRepository sessionRepository,
             SpringDataQuizSessionTargetRepository targetRepository
@@ -26,6 +38,14 @@ public class JpaQuizSessionRepository
         this.targetRepository = targetRepository;
     }
 
+    /**
+     * Saves the current quiz session state to the database.
+     *
+     * Replaces the stored target records with the latest
+     * snapshot to preserve their order and completion state.
+     *
+     * @param quizSession the session to persist
+     */
     @Override
     public void save(QuizSession quizSession) {
 
@@ -70,6 +90,13 @@ public class JpaQuizSessionRepository
         targetRepository.saveAll(targetEntities);
     }
 
+    /**
+     * Retrieves and reconstructs a previously saved quiz session.
+     *
+     * @param id identifies the requested session
+     * @return the restored session, or null if it cannot be found
+     *         or its stored target list is empty
+     */
     @Override
     public QuizSession findById(
             QuizSessionId id

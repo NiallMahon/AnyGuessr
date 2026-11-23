@@ -1,138 +1,358 @@
-// Records a game's start, guesses and finish, and gets a player's profile stats.
+// Records games, guesses, best scores and trophies, and gets, ranks, compares or deletes a player's stats.
 package com.anyguessr.anyguessrbackend.stats.application;
 
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecord;
-import com.anyguessr.anyguessrbackend.stats.domain.GameRecord.Guess;
-import com.anyguessr.anyguessrbackend.stats.domain.GameRecord.Summary;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.EarnedTrophy;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.FinishedGame;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.FirstGuess;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.LeaderboardEntry;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.MapBest;
+import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.OverallRank;
 import com.anyguessr.anyguessrbackend.stats.domain.GameRecordRepository.PlayerTotals;
 import com.anyguessr.anyguessrbackend.stats.domain.GameSessionId;
+import com.anyguessr.anyguessrbackend.stats.domain.MapBadge;
 import com.anyguessr.anyguessrbackend.stats.domain.MapId;
-import com.anyguessr.anyguessrbackend.stats.domain.RegionId;
+import com.anyguessr.anyguessrbackend.stats.domain.PlayStreak;
+import com.anyguessr.anyguessrbackend.stats.domain.Score;
+import com.anyguessr.anyguessrbackend.stats.domain.Trophy;
 import com.anyguessr.anyguessrbackend.stats.domain.UserId;
+import com.anyguessr.anyguessrbackend.stats.domain.WeakRegion;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+/**
+ * Application service for player stats. Records games from gameplay, updates scores/trophies,
+ * and builds the profile, map detail, game result, comparison and leaderboard views.
+ */
 public class StatsService {
 
-    public record GuessDetails(
-            RegionId targetRegionId,
-            RegionId selectedRegionId,
-            double lat,
-            double lng
-    ) {
-    }
+    /**
+     * A trophy and how close the player is to it.
+     *
+     * @param trophy    the trophy
+     * @param awardedAt when it was earned, or {@code null} if not earned yet
+     * @param progress  progress toward the trophy's goal
+     */
+    public record TrophyStatus(Trophy trophy, Instant awardedAt, int progress) {}
 
+    /**
+     * A map badge and whether the player has earned it.
+     *
+     * @param badge  the badge
+     * @param earned whether it is earned
+     */
+    public record BadgeStatus(MapBadge badge, boolean earned) {}
+
+    /**
+     * Everything shown on a player's profile stats.
+     *
+     * @param trophies    every trophy with the player's progress
+     * @param bestPerMap  the player's best game on each map
+     * @param streak      the player's daily play streak
+     * @param overallRank the player's overall place, or {@code null} if unranked
+     */
     public record UserStats(
-            PlayerTotals totals,
-            List<FinishedGame> recentGames
+            List<TrophyStatus> trophies,
+            List<MapBest> bestPerMap,
+            PlayStreak streak,
+            OverallRank overallRank
     ) {
     }
 
-    public static class GameNotFoundException extends RuntimeException {
+    /**
+     * A player's stats on one map.
+     *
+     * @param totals      totals across all games on the map
+     * @param best        the best game on the map, or {@code null}
+     * @param recentGames the latest finished games on the map
+     * @param weakRegions regions the player keeps getting wrong
+     * @param badges      every map badge and whether it is earned
+     */
+    public record MapDetail(
+            PlayerTotals totals,
+            MapBest best,
+            List<FinishedGame> recentGames,
+            List<WeakRegion> weakRegions,
+            List<BadgeStatus> badges
+    ) {
+    }
 
-        public GameNotFoundException(GameSessionId sessionId) {
-            super("No game found for session " + sessionId.value());
+    /**
+     * The result screen for one finished game.
+     *
+     * @param game          the finished game
+     * @param previousBest  the best game on this map before this one, or {@code null}
+     * @param mapBest       the current best on this map and its leaderboard place
+     * @param streak        the player's daily play streak
+     * @param newTrophies   trophies this game earned
+     * @param missedRegions targets missed on the first try
+     */
+    public record GameResult(
+            GameRecord game,
+            GameRecord previousBest,
+            MapBest mapBest,
+            PlayStreak streak,
+            Set<Trophy> newTrophies,
+            List<String> missedRegions
+    ) {
+
+        /**
+         * Returns {@code true} if this game beat the previous best on the map, or there was none.
+         *
+         * @return {@code true} if this game beat the previous best on the map, or there was none
+         */
+        public boolean isNewBest() {
+            return previousBest == null || game.isBetterThan(previousBest);
         }
     }
 
-    public static class GameAlreadyStartedException extends RuntimeException {
+    /**
+     * Two players' best games on the same map.
+     *
+     * @param yours  the first player's best, or {@code null} if they have not played it
+     * @param theirs the other player's best, or {@code null} if they have not played it
+     */
+    public record MapComparison(MapBest yours, MapBest theirs) {
 
-        public GameAlreadyStartedException(GameSessionId sessionId) {
-            super("A game already exists for session " + sessionId.value());
+        /**
+         * Returns whichever best is present, used for the map's ID and name.
+         *
+         * @return whichever best is present, used for the map's ID and name
+         */
+        public MapBest either() {
+            return yours != null ? yours : theirs;
         }
     }
 
-    private static final int RECENT_GAME_COUNT = 3;
+    private static final int MAP_GAME_COUNT = 20;
+    private static final int LEADERBOARD_SIZE = 100;
 
     private final GameRecordRepository gameRecordRepository;
     private final Clock clock;
 
+    /**
+     * Creates the service.
+     *
+     * @param gameRecordRepository where stats are stored
+     * @param clock                the clock used for game and trophy times
+     * @throws IllegalArgumentException if either argument is {@code null}
+     */
     public StatsService(GameRecordRepository gameRecordRepository, Clock clock) {
-        if (gameRecordRepository == null) {
-            throw new IllegalArgumentException("Game record repository must not be null");
-        }
-
-        if (clock == null) {
-            throw new IllegalArgumentException("Clock must not be null");
+        if (gameRecordRepository == null || clock == null) {
+            throw new IllegalArgumentException("Game record repository and clock must not be null");
         }
 
         this.gameRecordRepository = gameRecordRepository;
         this.clock = clock;
     }
 
+    /**
+     * Records the start of a game.
+     *
+     * @param sessionId the quiz session
+     * @param userId    the player
+     * @param mapId     the map being played
+     */
     public void startGame(GameSessionId sessionId, UserId userId, MapId mapId) {
-        if (gameRecordRepository.findBySessionId(sessionId).isPresent()) {
-            throw new GameAlreadyStartedException(sessionId);
-        }
-
-        if (!gameRecordRepository.userExists(userId)) {
-            throw new IllegalArgumentException("Unknown user " + userId.value());
-        }
-
-        if (!gameRecordRepository.mapExists(mapId)) {
-            throw new IllegalArgumentException("Unknown map " + mapId.value());
-        }
-
-        GameRecord gameRecord = GameRecord.start(sessionId, userId, mapId, clock.instant());
-
-        gameRecordRepository.add(gameRecord);
+        gameRecordRepository.add(GameRecord.start(sessionId, userId, mapId, clock.instant()));
     }
 
-    public Guess recordGuess(GameSessionId sessionId, GuessDetails details) {
-        if (details == null) {
-            throw new IllegalArgumentException("Guess details must not be null");
-        }
-
-        GameRecord gameRecord = findGame(sessionId);
-
-        checkRegionIsOnMap(details.targetRegionId(), gameRecord.getMapId());
-
-        if (details.selectedRegionId() != null) {
-            checkRegionIsOnMap(details.selectedRegionId(), gameRecord.getMapId());
-        }
-
-        Guess guess = gameRecord.recordGuess(
-                details.targetRegionId(),
-                details.selectedRegionId(),
-                details.lat(),
-                details.lng(),
-                clock.instant()
-        );
-
-        gameRecordRepository.addGuess(gameRecord, guess);
-
-        return guess;
+    /**
+     * Records a guess made in a game.
+     *
+     * @param sessionId the quiz session
+     * @param guess     the guess
+     */
+    public void recordGuess(GameSessionId sessionId, GameRecord.Guess guess) {
+        gameRecordRepository.addGuess(sessionId, guess, clock.instant());
     }
 
-    public Summary finishGame(GameSessionId sessionId) {
-        GameRecord gameRecord = findGame(sessionId);
-
-        Summary summary = gameRecord.finish(clock.instant());
-
-        gameRecordRepository.markFinished(gameRecord);
-
-        return summary;
+    /**
+     * Finishes a game, then updates the player's best on that map and awards any
+     * new trophies. Does nothing if the game was never started.
+     *
+     * @param sessionId the quiz session
+     * @param score     the final score
+     */
+    public void finishGame(GameSessionId sessionId, Score score) {
+        gameRecordRepository.findBySessionId(sessionId).ifPresent(gameRecord -> {
+            Instant now = clock.instant();
+            gameRecord.finish(now, score);
+            gameRecordRepository.markFinished(gameRecord);
+            recordIfBest(gameRecord);
+            awardTrophies(gameRecord, now);
+        });
     }
 
+    /**
+     * Returns the player's profile stats.
+     *
+     * @param userId the player
+     * @return the player's profile stats
+     */
     public UserStats getUserStats(UserId userId) {
+        Instant now = clock.instant();
+        List<GameRecord> games = gameRecordRepository.findFinishedGames(userId);
+
         return new UserStats(
-                gameRecordRepository.findTotalsForUser(userId),
-                gameRecordRepository.findRecentFinishedGames(userId, RECENT_GAME_COUNT)
+                trophyStatuses(userId, Trophy.Facts.from(games, now)),
+                gameRecordRepository.findBestPerMap(userId),
+                PlayStreak.from(games, now),
+                gameRecordRepository.findOverallRank(userId).orElse(null)
         );
     }
 
-    private GameRecord findGame(GameSessionId sessionId) {
-        return gameRecordRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new GameNotFoundException(sessionId));
+    /**
+     * Returns the player's stats on the map.
+     *
+     * @param userId the player
+     * @param mapId  the map
+     * @return the player's stats on the map
+     */
+    public MapDetail getMapDetail(UserId userId, MapId mapId) {
+        PlayerTotals totals = gameRecordRepository.findTotalsOnMap(userId, mapId);
+        MapBest best = bestByMap(userId).get(mapId);
+
+        return new MapDetail(
+                totals,
+                best,
+                gameRecordRepository.findRecentFinishedGamesOnMap(userId, mapId, MAP_GAME_COUNT),
+                WeakRegion.rank(gameRecordRepository.findRecentFirstGuesses(userId, mapId, MAP_GAME_COUNT)),
+                Arrays.stream(MapBadge.values())
+                        .map(badge -> new BadgeStatus(badge, badge.isEarned(totals.gamesPlayed(), best)))
+                        .toList()
+        );
     }
 
-    private void checkRegionIsOnMap(RegionId regionId, MapId mapId) {
-        if (!gameRecordRepository.regionIsOnMap(regionId, mapId)) {
-            throw new IllegalArgumentException(
-                    "Region " + regionId.value() + " is not on map " + mapId.value());
+    /**
+     * Returns the game's result, or empty if the game is unknown or not finished.
+     *
+     * @param sessionId the quiz session
+     * @return the game's result, or empty if the game is unknown or not finished
+     */
+    public Optional<GameResult> getGameResult(GameSessionId sessionId) {
+        return gameRecordRepository.findBySessionId(sessionId)
+                .filter(GameRecord::isFinished)
+                .map(this::resultOf);
+    }
+
+    /**
+     * Compares two players' best games on every map either of them has played.
+     *
+     * @param userId  the first player
+     * @param otherId the other player
+     * @return one comparison per map, sorted by map name
+     */
+    public List<MapComparison> compare(UserId userId, UserId otherId) {
+        Map<MapId, MapBest> yours = bestByMap(userId);
+        Map<MapId, MapBest> theirs = bestByMap(otherId);
+
+        return Stream.concat(yours.keySet().stream(), theirs.keySet().stream())
+                .distinct()
+                .map(mapId -> new MapComparison(yours.get(mapId), theirs.get(mapId)))
+                .sorted(Comparator.comparing(comparison -> comparison.either().mapName()))
+                .toList();
+    }
+
+    /**
+     * Returns the top 100 players on the map, best first.
+     *
+     * @param mapId the map
+     * @return the top 100 players on the map, best first
+     */
+    public List<LeaderboardEntry> getLeaderboard(MapId mapId) {
+        return gameRecordRepository.findLeaderboard(mapId, LEADERBOARD_SIZE);
+    }
+
+    /**
+     * Deletes all of a player's stats.
+     *
+     * @param userId the player
+     */
+    public void deleteUserStats(UserId userId) {
+        gameRecordRepository.deleteAllForUser(userId);
+    }
+
+    private List<TrophyStatus> trophyStatuses(UserId userId, Trophy.Facts facts) {
+        Map<Trophy, Instant> earned = gameRecordRepository.findTrophies(userId).stream()
+                .collect(Collectors.toMap(EarnedTrophy::trophy, EarnedTrophy::awardedAt));
+
+        return Arrays.stream(Trophy.values())
+                .map(trophy -> new TrophyStatus(trophy, earned.get(trophy), trophy.progress(facts)))
+                .toList();
+    }
+
+    private GameResult resultOf(GameRecord game) {
+        Instant now = clock.instant();
+        List<GameRecord> games = gameRecordRepository.findFinishedGames(game.getUserId());
+        List<GameRecord> before = games.stream()
+                .takeWhile(other -> !other.getSessionId().equals(game.getSessionId()))
+                .toList();
+        GameRecord previousBest = before.stream()
+                .filter(other -> other.getMapId().equals(game.getMapId()))
+                .reduce((best, other) -> other.isBetterThan(best) ? other : best)
+                .orElse(null);
+        Set<Trophy> heldBefore = Trophy.newlyEarned(Trophy.Facts.from(before, now), Set.of());
+
+        return new GameResult(
+                game,
+                previousBest,
+                bestByMap(game.getUserId()).get(game.getMapId()),
+                PlayStreak.from(games, now),
+                Trophy.newlyEarned(Trophy.Facts.from(games.subList(0, before.size() + 1), now), heldBefore),
+                gameRecordRepository.findFirstGuesses(game.getSessionId()).stream()
+                        .filter(guess -> !guess.correct())
+                        .map(FirstGuess::target)
+                        .toList()
+        );
+    }
+
+    private Map<MapId, MapBest> bestByMap(UserId userId) {
+        return gameRecordRepository.findBestPerMap(userId).stream()
+                .collect(Collectors.toMap(MapBest::mapId, Function.identity()));
+    }
+
+    private void recordIfBest(GameRecord gameRecord) {
+        boolean best = gameRecordRepository.findBestGame(gameRecord.getUserId(), gameRecord.getMapId())
+                .map(gameRecord::isBetterThan)
+                .orElse(true);
+
+        if (best) {
+            gameRecordRepository.saveBestGame(gameRecord);
         }
+    }
+
+    private void awardTrophies(GameRecord gameRecord, Instant now) {
+        UserId userId = gameRecord.getUserId();
+        Set<Trophy> held = gameRecordRepository.findTrophies(userId).stream()
+                .map(EarnedTrophy::trophy)
+                .collect(Collectors.toSet());
+
+        gameRecordRepository.addTrophies(
+                userId,
+                Trophy.newlyEarned(Trophy.Facts.from(gameRecordRepository.findFinishedGames(userId), now), held),
+                now
+        );
+    }
+
+    /**
+     * Returns how many games the player has finished.
+     *
+     * @param userId the player
+     * @return how many games the player has finished
+     */
+    public int getGamesPlayed(UserId userId) {
+        return gameRecordRepository.findFinishedGames(userId).size();
     }
 }

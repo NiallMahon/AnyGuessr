@@ -1,0 +1,68 @@
+
+name: AnyGuessr CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/a4-github-actions-ci
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend - Build, Test and Package
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Run backend tests and package application
+        run: |
+          bash ./mvnw --batch-mode --no-transfer-progress clean verify \
+            -Dspring.profiles.active=database \
+            -Dspring.security.oauth2.client.registration.test.provider=google \
+            -Dspring.security.oauth2.client.registration.test.client-id=dummy-test-client \
+            -Dspring.security.oauth2.client.registration.test.client-secret=dummy-test-secret
+
+  frontend:
+    name: Frontend - Production Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build

@@ -1,54 +1,35 @@
-// One player's game on a map; only the first click on each target is scored.
 package com.anyguessr.anyguessrbackend.stats.domain;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
+/**
+ * Object representing one player's game on one map.
+ * Created on game start and finished on game end.
+ */
 public class GameRecord {
 
-    public record Guess(
-            int attemptNumber,
-            RegionId targetRegionId,
-            RegionId selectedRegionId,
-            double lat,
-            double lng,
-            Instant guessedAt
-    ) {
+    /**
+     * A single guess made during a game.
+     *
+     * @param target     the region the player was asked to find
+     * @param selected   the region the player clicked
+     * @param correct    whether the selected region was the target
+     * @param clickedLat latitude of the click, or {@code null} if not known
+     * @param clickedLng longitude of the click, or {@code null} if not known
+     */
+    public record Guess(RegionId target, RegionId selected, boolean correct, Double clickedLat, Double clickedLng) {}
 
-        public Guess {
-            if (attemptNumber < 1) {
-                throw new IllegalArgumentException("Attempt number must be at least 1");
-            }
-
-            if (targetRegionId == null) {
-                throw new IllegalArgumentException("Target region must not be null");
-            }
-
-            if (guessedAt == null) {
-                throw new IllegalArgumentException("Guess time must not be null");
-            }
-        }
-
-        public boolean correct() {
-            return targetRegionId.equals(selectedRegionId);
-        }
-    }
-
-    public record Summary(
-            int correctGuesses,
-            int incorrectGuesses,
-            int durationSeconds,
-            double accuracyPercent
-    ) {
-    }
-
+    /**
+     * Thrown when trying to finish a game that already has a final score.
+     */
     public static class GameAlreadyFinishedException extends RuntimeException {
 
+        /**
+         * Creates the exception for the given game.
+         *
+         * @param sessionId the game that is already finished
+         */
         public GameAlreadyFinishedException(GameSessionId sessionId) {
             super("Game " + sessionId.value() + " is already finished");
         }
@@ -58,9 +39,9 @@ public class GameRecord {
     private final UserId userId;
     private final MapId mapId;
     private final Instant startedAt;
-    private final List<Guess> guesses;
 
     private Instant finishedAt;
+    private Score score;
 
     private GameRecord(
             GameSessionId sessionId,
@@ -68,36 +49,10 @@ public class GameRecord {
             MapId mapId,
             Instant startedAt,
             Instant finishedAt,
-            List<Guess> guesses
+            Score score
     ) {
-        if (sessionId == null) {
-            throw new IllegalArgumentException("Game session ID must not be null");
-        }
-
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID must not be null");
-        }
-
-        if (mapId == null) {
-            throw new IllegalArgumentException("Map ID must not be null");
-        }
-
-        if (startedAt == null) {
-            throw new IllegalArgumentException("Start time must not be null");
-        }
-
-        if (finishedAt != null && finishedAt.isBefore(startedAt)) {
-            throw new IllegalArgumentException("A game cannot finish before it started");
-        }
-
-        if (guesses == null) {
-            throw new IllegalArgumentException("Guesses must not be null");
-        }
-
-        for (int i = 0; i < guesses.size(); i++) {
-            if (guesses.get(i).attemptNumber() != i + 1) {
-                throw new IllegalArgumentException("Guesses must be numbered 1, 2, 3... in order");
-            }
+        if (sessionId == null || userId == null || mapId == null || startedAt == null) {
+            throw new IllegalArgumentException("Session, user, map and start time must not be null");
         }
 
         this.sessionId = sessionId;
@@ -105,65 +60,65 @@ public class GameRecord {
         this.mapId = mapId;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
-        this.guesses = new ArrayList<>(guesses);
+        this.score = score;
     }
 
+    /**
+     * Starts a new, unfinished game.
+     *
+     * @param sessionId the quiz session the game is played in
+     * @param userId    the player
+     * @param mapId     the map being played
+     * @param startedAt when the game started
+     * @return the new game
+     * @throws IllegalArgumentException if any argument is {@code null}
+     */
     public static GameRecord start(
             GameSessionId sessionId,
             UserId userId,
             MapId mapId,
             Instant startedAt
     ) {
-        return new GameRecord(sessionId, userId, mapId, startedAt, null, List.of());
+        return new GameRecord(sessionId, userId, mapId, startedAt, null, null);
     }
 
+    /**
+     * Rebuilds a game that was loaded from storage.
+     *
+     * @param sessionId  the quiz session the game was played in
+     * @param userId     the player
+     * @param mapId      the map that was played
+     * @param startedAt  when the game started
+     * @param finishedAt when the game finished, or {@code null} if it is still going
+     * @param score      the final score, or {@code null} if it is still going
+     * @return the restored game
+     */
     public static GameRecord restore(
             GameSessionId sessionId,
             UserId userId,
             MapId mapId,
             Instant startedAt,
             Instant finishedAt,
-            List<Guess> guesses
+            Score score
     ) {
-        return new GameRecord(sessionId, userId, mapId, startedAt, finishedAt, guesses);
+        return new GameRecord(sessionId, userId, mapId, startedAt, finishedAt, score);
     }
 
-    public Guess recordGuess(
-            RegionId targetRegionId,
-            RegionId selectedRegionId,
-            double lat,
-            double lng,
-            Instant guessedAt
-    ) {
+    /**
+     * Finishes the game with its final score.
+     *
+     * @param finishedAt when the game finished
+     * @param score      the final score
+     * @throws GameAlreadyFinishedException if the game is already finished
+     * @throws IllegalArgumentException     if an argument is {@code null} or the game would finish before it started
+     */
+    public void finish(Instant finishedAt, Score score) {
         if (isFinished()) {
             throw new GameAlreadyFinishedException(sessionId);
         }
 
-        if (guessedAt != null && guessedAt.isBefore(startedAt)) {
-            throw new IllegalArgumentException("A guess cannot be made before the game started");
-        }
-
-        Guess guess = new Guess(
-                guesses.size() + 1,
-                targetRegionId,
-                selectedRegionId,
-                lat,
-                lng,
-                guessedAt
-        );
-
-        guesses.add(guess);
-
-        return guess;
-    }
-
-    public Summary finish(Instant finishedAt) {
-        if (isFinished()) {
-            throw new GameAlreadyFinishedException(sessionId);
-        }
-
-        if (finishedAt == null) {
-            throw new IllegalArgumentException("Finish time must not be null");
+        if (finishedAt == null || score == null) {
+            throw new IllegalArgumentException("Finish time and score must not be null");
         }
 
         if (finishedAt.isBefore(startedAt)) {
@@ -171,63 +126,117 @@ public class GameRecord {
         }
 
         this.finishedAt = finishedAt;
-
-        return summary();
+        this.score = score;
     }
 
-    public Summary summary() {
-        if (!isFinished()) {
-            throw new IllegalStateException("Game has not finished yet");
-        }
-
-        Set<RegionId> answeredTargets = new HashSet<>();
-        int correct = 0;
-        int incorrect = 0;
-
-        for (Guess guess : guesses) {
-            if (guess.selectedRegionId() == null || !answeredTargets.add(guess.targetRegionId())) {
-                continue;
-            }
-
-            if (guess.correct()) {
-                correct++;
-            } else {
-                incorrect++;
-            }
-        }
-
-        int answered = correct + incorrect;
-        int durationSeconds = (int) Duration.between(startedAt, finishedAt).toSeconds();
-        double accuracyPercent = answered == 0 ? 0.0 : correct * 100.0 / answered;
-
-        return new Summary(correct, incorrect, durationSeconds, accuracyPercent);
+    /**
+     * Returns how long the game took.
+     *
+     * @return the game length in seconds
+     * @throws IllegalStateException if the game has not finished
+     */
+    public int durationSeconds() {
+        requireFinished();
+        return (int) Duration.between(startedAt, finishedAt).toSeconds();
     }
 
+    /**
+     * Returns the average time spent on each target.
+     *
+     * @return seconds per target
+     * @throws IllegalStateException if the game has not finished
+     */
+    public double secondsPerTarget() {
+        return durationSeconds() / (double) score.total();
+    }
+
+    /**
+     * Compares this game with another: higher accuracy wins, and a faster time
+     * breaks a tie.
+     *
+     * @param other the game to compare against
+     * @return {@code true} if this game is better
+     * @throws IllegalStateException if either game has not finished
+     */
+    public boolean isBetterThan(GameRecord other) {
+        if (!isFinished() || !other.isFinished()) {
+            throw new IllegalStateException("Only finished games can be compared");
+        }
+
+        int byAccuracy = Double.compare(score.accuracyPercent(), other.score.accuracyPercent());
+        return byAccuracy != 0 ? byAccuracy > 0 : durationSeconds() < other.durationSeconds();
+    }
+
+    /**
+     * Returns {@code true} if the game has a final score.
+     *
+     * @return {@code true} if the game has a final score
+     */
     public boolean isFinished() {
         return finishedAt != null;
     }
 
+    /**
+     * Returns the quiz session the game was played in.
+     *
+     * @return the quiz session the game was played in
+     */
     public GameSessionId getSessionId() {
         return sessionId;
     }
 
+    /**
+     * Returns the player.
+     *
+     * @return the player
+     */
     public UserId getUserId() {
         return userId;
     }
 
+    /**
+     * Returns the map that was played.
+     *
+     * @return the map that was played
+     */
     public MapId getMapId() {
         return mapId;
     }
 
+    /**
+     * Returns when the game started.
+     *
+     * @return when the game started
+     */
     public Instant getStartedAt() {
         return startedAt;
     }
 
-    public Optional<Instant> getFinishedAt() {
-        return Optional.ofNullable(finishedAt);
+    /**
+     * Returns when the game finished.
+     *
+     * @return when the game finished
+     * @throws IllegalStateException if the game has not finished
+     */
+    public Instant getFinishedAt() {
+        requireFinished();
+        return finishedAt;
     }
 
-    public List<Guess> getGuesses() {
-        return List.copyOf(guesses);
+    /**
+     * Returns the final score.
+     *
+     * @return the final score
+     * @throws IllegalStateException if the game has not finished
+     */
+    public Score getScore() {
+        requireFinished();
+        return score;
+    }
+
+    private void requireFinished() {
+        if (!isFinished()) {
+            throw new IllegalStateException("Game has not finished yet");
+        }
     }
 }

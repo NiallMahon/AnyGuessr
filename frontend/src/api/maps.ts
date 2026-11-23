@@ -24,6 +24,33 @@ export type MapExportPayload = {
     polygons: PolygonPayload[];
 };
 
+export type MapSummary = {
+    mapId: number;
+    name: string;
+    imageRef: string | null;
+    regionCount: number;
+};
+
+/** Fetches all available maps from the backend. */
+export async function getMaps(): Promise<MapSummary[]> {
+    const response = await fetch(`${API_BASE}/api/maps`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch maps");
+    }
+
+    return response.json() as Promise<MapSummary[]>;
+}
+
+/** Builds the URL used to display a map's uploaded image. */
+export function getMapImageUrl(imageRef: string | null): string | null {
+    if (!imageRef) {
+        return null;
+    }
+
+    return `${API_BASE}/api/maps/images/${encodeURIComponent(imageRef)}`;
+}
+
 async function readError(response: Response, fallback: string) {
     try {
         const body = await response.json();
