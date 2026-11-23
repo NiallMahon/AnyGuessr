@@ -13,6 +13,24 @@ type QuizMapProps = {
   disabled: boolean;
 };
 
+/** Sets the map's height from its image's shape */
+async function fitToImage(map: MapDetail): Promise<MapDetail> {
+  const url = getMapImageUrl(map.imageRef);
+  if (!url) return map;
+
+  const img = new Image();
+  img.src = url;
+  try {
+    await img.decode();
+    return {
+      ...map,
+      height: Math.round((map.width * img.naturalHeight) / img.naturalWidth),
+    };
+  } catch {
+    return map;
+  }
+}
+
 /**
  * Displays a saved map and submits clicks on its regions.
  */
@@ -29,6 +47,7 @@ function QuizMap({
     let active = true;
 
     getMapDetails(mapId)
+      .then(fitToImage)
       .then((data) => {
         if (active) {
           setMap(data);
@@ -101,8 +120,7 @@ if (!targetRegion) {
         role="group"
         aria-label={`Clickable regions for ${map.name}`}
         style={{
-          width: "100%",
-          maxWidth: 900,
+          width: `min(100%, 900px, ${(80 * map.width) / map.height}vh)`,
           height: "auto",
           border: "1px solid #aaa",
           background: "#f8fafc",
