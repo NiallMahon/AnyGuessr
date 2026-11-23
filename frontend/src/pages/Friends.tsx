@@ -1,609 +1,764 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Friends.css";
-import { useState, useEffect, useCallback } from "react";
 
-type Friend = {
-    userId: number;
-    name: string;
+interface UserSummary {
+    id?: number;
+    userId?: number;
+    username?: string | null;
+    name?: string | null;
+    displayName?: string | null;
+    status?: string | null;
+    bio?: string | null;
+    location?: string | null;
+    initials?: string | null;
+    gamesPlayed?: number | null;
+}
+
+interface RequestView {
+    id?: number | string;
+    requestId?: number | string;
+    requesterUserId?: number | string;
+    requesterId?: number | string;
+    recipientUserId?: number | string;
+    recipientId?: number | string;
+    targetUserId?: number | string;
+    otherUserId?: number | string;
+    requesterUsername?: string | null;
+    recipientUsername?: string | null;
+    targetUsername?: string | null;
+    username?: string | null;
+    displayName?: string | null;
+    recipient?: Record<string, unknown> | null;
+    targetUser?: Record<string, unknown> | null;
+    user?: Record<string, unknown> | null;
+}
+
+interface UsernameOption {
+    id: number;
     username: string;
-    location: string;
-    initials: string;
-    gamesPlayed: number;
-    status: string;
-    duelLinkId: string;
-};
-
-type RequestItem = {
-    otherUserId: number;
-    otherUsername: string;
-    otherName: string;
-    otherInitials: string;
-    status: string;
-};
-
-type UserSearchResult = {
-    user: Friend;
-    relationship: "NONE" | "FRIEND" | "OUTGOING_PENDING" | "INCOMING_PENDING";
-};
+    label: string;
+    relationship: string;
+    isFriend: boolean;
+    friend?: UserSummary;
+}
 
 const API_BASE = "http://localhost:8080/api/friends";
+const PROFILE_ME_URL = "http://localhost:8080/profile/me";
 
-function Friends() {
-    const [currentUserId, setCurrentUserId] = useState("1");
-    const [friends, setFriends] = useState<Friend[]>([]);
-    const [incomingRequests, setIncomingRequests] = useState<RequestItem[]>([]);
-    const [outgoingRequests, setOutgoingRequests] = useState<RequestItem[]>([]);
-    const [blockedUsers, setBlockedUsers] = useState<Friend[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [playerLookupQuery, setPlayerLookupQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
-    const [searchingPlayers, setSearchingPlayers] = useState(false);
-    const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-    const [activeTab, setActiveTab] = useState<"friends" | "discover" | "blocked">("friends");
-    const [loading, setLoading] = useState<boolean>(true);
-    const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+function unwrapUserRecord(raw: unknown): Record<string, unknown> | null {
+    if (!raw || typeof raw !== "object") return null;
+    const obj = raw as Record<string, unknown>;
+    if (obj.user && typeof obj.user === "object") {
+        return obj.user as Record<string, unknown>;
+    }
+    return obj;
+}
 
-    const parsedUserId = Number(currentUserId.trim());
-    const hasValidUserId = Number.isInteger(parsedUserId) && parsedUserId > 0;
+function toFiniteNumber(val: unknown): number | null {
+    if (typeof val === "number" && Number.isFinite(val)) return val;
+    if (typeof val === "string" && val.trim() !== "" && Number.isFinite(Number(val))) {
+        return Number(val);
+    }
+    return null;
+}
 
-    const loadSocialData = useCallback(async (userIdNum: number) => {
-        setLoading(true);
-        try {
-            const [friendsRes, incomingRes, outgoingRes, blockedRes] = await Promise.all([
-                fetch(`${API_BASE}/user/${userIdNum}`),
-                fetch(`${API_BASE}/requests/incoming/${userIdNum}`),
-                fetch(`${API_BASE}/requests/outgoing/${userIdNum}`),
-                fetch(`${API_BASE}/blocked/${userIdNum}`),
-            ]);
+function extractUserId(raw: unknown, fallback = 0): number {
+    const userObj = unwrapUserRecord(raw);
+    const candidate = userObj?.userId ?? userObj?.id ?? (raw as Record<string, unknown> | null)?.id;
+    return toFiniteNumber(candidate) ?? fallback;
+}
 
-            setFriends(friendsRes.ok ? await friendsRes.json() : []);
-            setIncomingRequests(incomingRes.ok ? await incomingRes.json() : []);
-            setOutgoingRequests(outgoingRes.ok ? await outgoingRes.json() : []);
-            setBlockedUsers(blockedRes.ok ? await blockedRes.json() : []);
-        } catch (err) {
-            console.error("Failed to fetch friends data:", err);
-            setFeedback({ type: "error", message: "Could not reach backend server." });
-        } finally {
-            setLoading(false);
+function extractUsername(raw: unknown): string {
+    const userObj = unwrapUserRecord(raw);
+    if (!userObj) return "";
+    const candidates = [userObj.username, userObj.userName, userObj.handle, userObj.name, userObj.displayName];
+    for (const val of candidates) {
+        if (typeof val === "string" && val.trim() !== "") {
+            return val.trim();
         }
+    }
+    return "";
+}
+
+function extractDisplayName(raw: unknown, fallback: string): string {
+    const userObj = unwrapUserRecord(raw);
+    if (!userObj) return fallback;
+    const candidates = [userObj.displayName, userObj.name, userObj.username, userObj.userName];
+    for (const val of candidates) {
+        if (typeof val === "string" && val.trim() !== "") {
+            return val.trim();
+        }
+    }
+    return fallback;
+}
+
+function extractRecipientId(req: RequestView): number | null {
+    const nestedRecipient = req.recipient ?? req.targetUser ?? req.user ?? null;
+    const nestedId =
+        nestedRecipient && typeof nestedRecipient === "object"
+            ? toFiniteNumber(
+                (nestedRecipient as Record<string, unknown>).userId ??
+                (nestedRecipient as Record<string, unknown>).id
+            )
+            : null;
+
+    return (
+        toFiniteNumber(req.recipientUserId) ??
+        toFiniteNumber(req.recipientId) ??
+        toFiniteNumber(req.targetUserId) ??
+        toFiniteNumber(req.otherUserId) ??
+        nestedId ??
+        toFiniteNumber(req.id) ??
+        toFiniteNumber(req.requestId)
+    );
+}
+
+function extractRequestLabel(req: RequestView, fallbackId: number | string): string {
+    const nestedRecipient = req.recipient ?? req.targetUser ?? req.user ?? null;
+    const nestedName =
+        nestedRecipient && typeof nestedRecipient === "object"
+            ? ((nestedRecipient as Record<string, unknown>).username ??
+                (nestedRecipient as Record<string, unknown>).name)
+            : null;
+
+    const candidate =
+        req.recipientUsername ??
+        req.targetUsername ??
+        req.username ??
+        req.displayName ??
+        req.requesterUsername ??
+        nestedName;
+
+    if (typeof candidate === "string" && candidate.trim() !== "") {
+        return candidate.trim();
+    }
+    return `User #${fallbackId}`;
+}
+
+async function resolveSignedInUserId(): Promise<number | null> {
+    const storedId = sessionStorage.getItem("userId");
+    if (storedId && !Number.isNaN(Number(storedId)) && storedId.trim() !== "") {
+        return Number(storedId);
+    }
+
+    try {
+        const res = await fetch(PROFILE_ME_URL, { credentials: "include" });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const id = data?.id ?? data?.userId;
+        if (typeof id === "number" && !Number.isNaN(id)) {
+            sessionStorage.setItem("userId", String(id));
+            return id;
+        }
+        if (typeof id === "string" && id.trim() !== "" && !Number.isNaN(Number(id))) {
+            sessionStorage.setItem("userId", id.trim());
+            return Number(id);
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+}
+
+function getInitials(name: string | null | undefined): string {
+    const trimmed = typeof name === "string" ? name.trim() : "";
+    if (!trimmed) return "?";
+    return trimmed.slice(0, 2).toUpperCase();
+}
+
+export default function Friends() {
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    const [authChecking, setAuthChecking] = useState(true);
+
+    const [friends, setFriends] = useState<UserSummary[]>([]);
+    const [incomingRequests, setIncomingRequests] = useState<RequestView[]>([]);
+    const [outgoingRequests, setOutgoingRequests] = useState<RequestView[]>([]);
+    const [blockedUsers, setBlockedUsers] = useState<UserSummary[]>([]);
+    const [searchResults, setSearchResults] = useState<unknown[]>([]);
+
+    const [query, setQuery] = useState("");
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [selectedFriend, setSelectedFriend] = useState<UserSummary | null>(null);
+
+    const headerSearchRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        let active = true;
+        resolveSignedInUserId().then((id) => {
+            if (!active) return;
+            setCurrentUserId(id);
+            setAuthChecking(false);
+        });
+        return () => {
+            active = false;
+        };
     }, []);
 
     useEffect(() => {
-        setSelectedFriend(null);
-        setFeedback(null);
-        setSearchResults([]);
-        if (!hasValidUserId) {
-            setFriends([]);
-            setIncomingRequests([]);
-            setOutgoingRequests([]);
-            setBlockedUsers([]);
-            setLoading(false);
-            return;
+        function handleClickOutside(e: MouseEvent) {
+            if (headerSearchRef.current && !headerSearchRef.current.contains(e.target as Node)) {
+                setDropdownOpen(false);
+            }
         }
-        loadSocialData(parsedUserId);
-    }, [currentUserId, hasValidUserId, parsedUserId, loadSocialData]);
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const loadAllSocialData = useCallback(async (userId: number) => {
+        const opts: RequestInit = { credentials: "include" };
+
+        async function safeFetch<T>(url: string, fallback: T): Promise<{ ok: boolean; data: T }> {
+            try {
+                const res = await fetch(url, opts);
+                if (!res.ok) return { ok: false, data: fallback };
+                const json = await res.json();
+                return { ok: true, data: (Array.isArray(json) ? json : fallback) as T };
+            } catch {
+                return { ok: false, data: fallback };
+            }
+        }
+
+        const [friendsRes, incomingRes, outgoingRes, blockedRes] = await Promise.all([
+            safeFetch<UserSummary[]>(`${API_BASE}/user/${userId}`, []),
+            safeFetch<RequestView[]>(`${API_BASE}/requests/incoming/${userId}`, []),
+            safeFetch<RequestView[]>(`${API_BASE}/requests/outgoing/${userId}`, []),
+            safeFetch<UserSummary[]>(`${API_BASE}/blocked/${userId}`, []),
+        ]);
+
+        if (friendsRes.ok) {
+            setFriends(friendsRes.data);
+            setSelectedFriend((prev) => {
+                if (!prev) return friendsRes.data[0] ?? null;
+                const prevId = extractUserId(prev, -1);
+                return friendsRes.data.find((f) => extractUserId(f, -2) === prevId) ?? friendsRes.data[0] ?? null;
+            });
+        }
+        if (incomingRes.ok) setIncomingRequests(incomingRes.data);
+        if (outgoingRes.ok) setOutgoingRequests(outgoingRes.data);
+        if (blockedRes.ok) setBlockedUsers(blockedRes.data);
+    }, []);
 
     useEffect(() => {
-        const trimmed = playerLookupQuery.trim();
-        if (!trimmed || !hasValidUserId) {
+        if (currentUserId !== null) {
+            loadAllSocialData(currentUserId);
+        }
+    }, [currentUserId, loadAllSocialData]);
+
+    useEffect(() => {
+        if (currentUserId === null) return;
+        const trimmed = query.trim();
+        if (!trimmed) {
             setSearchResults([]);
             return;
         }
 
+        let cancelled = false;
         const timer = setTimeout(async () => {
-            setSearchingPlayers(true);
             try {
                 const res = await fetch(
-                    `${API_BASE}/search?userId=${parsedUserId}&query=${encodeURIComponent(trimmed)}`
+                    `${API_BASE}/search?userId=${currentUserId}&query=${encodeURIComponent(trimmed)}`,
+                    { credentials: "include" }
                 );
-                if (res.ok) {
-                    setSearchResults(await res.json());
+                if (!res.ok || cancelled) return;
+                const data = await res.json();
+                if (cancelled) return;
+                if (Array.isArray(data)) {
+                    setSearchResults(data);
+                } else if (data && Array.isArray((data as { content?: unknown[] }).content)) {
+                    setSearchResults((data as { content: unknown[] }).content);
+                } else {
+                    setSearchResults([]);
                 }
-            } catch (err) {
-                console.error("Player search failed:", err);
-            } finally {
-                setSearchingPlayers(false);
+            } catch {
+                if (!cancelled) setSearchResults([]);
             }
-        }, 250);
+        }, 150);
 
-        return () => clearTimeout(timer);
-    }, [playerLookupQuery, hasValidUserId, parsedUserId, friends, incomingRequests, outgoingRequests]);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [currentUserId, query]);
 
-    const filteredFriends = friends.filter(
-        (friend) =>
-            friend.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            friend.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const suggestedUsernames = useMemo<UsernameOption[]>(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
 
-    const extractErrorMessage = async (response: Response, fallback: string): Promise<string> => {
-        try {
-            const data = await response.json();
-            if (data && typeof data.message === "string" && data.message.trim()) {
-                return data.message;
-            }
-        } catch {
-            const text = await response.text();
-            if (text.trim()) {
-                return text;
-            }
-        }
-        return fallback;
-    };
+        const options = new Map<string, UsernameOption>();
 
-    const sendRequestToUsername = async (username: string) => {
-        const trimmed = username.trim();
-        if (!trimmed || !hasValidUserId) return;
+        for (const f of friends) {
+            const uname = extractUsername(f);
+            if (!uname) continue;
+            const dname = extractDisplayName(f, uname);
+            const fid = extractUserId(f, 0);
 
-        setFeedback(null);
-        try {
-            const response = await fetch(`${API_BASE}/requests`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    requesterUserId: parsedUserId,
-                    targetUsername: trimmed,
-                }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setFeedback({
-                    type: "success",
-                    message:
-                        data.status === "ACCEPTED"
-                            ? `You and @${trimmed} are now friends!`
-                            : `Friend request sent to @${trimmed}.`,
+            if (uname.toLowerCase().includes(q) || dname.toLowerCase().includes(q)) {
+                options.set(uname.toLowerCase(), {
+                    id: fid,
+                    username: uname,
+                    label: dname,
+                    relationship: "FRIEND",
+                    isFriend: true,
+                    friend: f,
                 });
-                await loadSocialData(parsedUserId);
-            } else {
-                const msg = await extractErrorMessage(
-                    response,
-                    "Could not send friend request. Check the username."
-                );
-                setFeedback({ type: "error", message: msg });
             }
-        } catch (err) {
-            console.error("Error sending friend request:", err);
-            setFeedback({ type: "error", message: "Network error sending friend request." });
         }
-    };
 
-    const handleDiscoverSubmit = async (e: React.FormEvent) => {
+        for (const rawItem of searchResults) {
+            const uname = extractUsername(rawItem);
+            if (!uname) continue;
+            const dname = extractDisplayName(rawItem, uname);
+            const uid = extractUserId(rawItem, 0);
+            const rel =
+                rawItem &&
+                typeof rawItem === "object" &&
+                typeof (rawItem as { relationship?: unknown }).relationship === "string"
+                    ? String((rawItem as { relationship: string }).relationship)
+                    : "NONE";
+            const key = uname.toLowerCase();
+
+            if (!options.has(key)) {
+                const matchedFriend = friends.find((f) => {
+                    const funame = extractUsername(f);
+                    return extractUserId(f, -1) === uid || (funame && funame.toLowerCase() === key);
+                });
+                const isFriend = Boolean(matchedFriend) || rel === "FRIEND";
+                options.set(key, {
+                    id: uid,
+                    username: uname,
+                    label: dname,
+                    relationship: isFriend ? "FRIEND" : rel,
+                    isFriend,
+                    friend: matchedFriend,
+                });
+            }
+        }
+
+        return Array.from(options.values()).slice(0, 7);
+    }, [query, friends, searchResults]);
+
+    function handlePickSuggestion(option: UsernameOption) {
+        setQuery(option.username);
+        setDropdownOpen(false);
+        if (option.isFriend && option.friend) {
+            setSelectedFriend(option.friend);
+        }
+    }
+
+    async function sendFriendRequestForUsername(rawUsername: string) {
+        if (!currentUserId) return;
+        const username = rawUsername.trim();
+        if (!username) return;
+
+        const res = await fetch(`${API_BASE}/requests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                requesterUserId: currentUserId,
+                targetUsername: username,
+            }),
+        });
+        if (res.ok) {
+            setDropdownOpen(false);
+            await loadAllSocialData(currentUserId);
+        }
+    }
+
+    async function handleFormSubmit(e: React.FormEvent) {
         e.preventDefault();
-        await sendRequestToUsername(playerLookupQuery);
-    };
+        const trimmed = query.trim();
+        if (!trimmed) return;
 
-    const handleAcceptRequest = async (requesterUserId: number) => {
-        if (!hasValidUserId) return;
-        setFeedback(null);
-        try {
-            const response = await fetch(
-                `${API_BASE}/requests/accept?userId=${parsedUserId}&requesterUserId=${requesterUserId}`,
-                { method: "POST" }
-            );
-            if (response.ok) {
-                setFeedback({ type: "success", message: "Friend request accepted." });
-                await loadSocialData(parsedUserId);
-            } else {
-                const msg = await extractErrorMessage(response, "Could not accept request.");
-                setFeedback({ type: "error", message: msg });
-            }
-        } catch (err) {
-            console.error("Error accepting request:", err);
-            setFeedback({ type: "error", message: "Network error accepting request." });
+        const exactMatch = suggestedUsernames.find(
+            (item) => item.username.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (exactMatch?.isFriend && exactMatch.friend) {
+            setSelectedFriend(exactMatch.friend);
+            setDropdownOpen(false);
+            return;
         }
-    };
 
-    const handleDeclineRequest = async (requesterUserId: number) => {
-        if (!hasValidUserId) return;
-        setFeedback(null);
-        try {
-            const response = await fetch(
-                `${API_BASE}/requests/decline?userId=${parsedUserId}&requesterUserId=${requesterUserId}`,
-                { method: "POST" }
-            );
-            if (response.ok) {
-                setIncomingRequests((prev) => prev.filter((r) => r.otherUserId !== requesterUserId));
-                setFeedback({ type: "success", message: "Friend request declined." });
-            } else {
-                const msg = await extractErrorMessage(response, "Could not decline request.");
-                setFeedback({ type: "error", message: msg });
-            }
-        } catch (err) {
-            console.error("Error declining request:", err);
-            setFeedback({ type: "error", message: "Network error declining request." });
+        await sendFriendRequestForUsername(exactMatch ? exactMatch.username : trimmed);
+    }
+
+    async function handleAcceptRequest(requesterUserId: number) {
+        if (!currentUserId) return;
+        const res = await fetch(
+            `${API_BASE}/requests/accept?userId=${currentUserId}&requesterUserId=${requesterUserId}`,
+            { method: "POST", credentials: "include" }
+        );
+        if (res.ok) await loadAllSocialData(currentUserId);
+    }
+
+    async function handleDeclineRequest(requesterUserId: number) {
+        if (!currentUserId) return;
+        const res = await fetch(
+            `${API_BASE}/requests/decline?userId=${currentUserId}&requesterUserId=${requesterUserId}`,
+            { method: "POST", credentials: "include" }
+        );
+        if (res.ok) await loadAllSocialData(currentUserId);
+    }
+
+    async function handleCancelRequest(req: RequestView) {
+        if (!currentUserId) return;
+        const recipientId = extractRecipientId(req);
+        const requestId = toFiniteNumber(req.id ?? req.requestId);
+
+        const attempts: Array<{ url: string; method: "POST" | "DELETE" }> = [];
+        if (recipientId !== null) {
+            attempts.push({
+                url: `${API_BASE}/requests/cancel?userId=${currentUserId}&recipientUserId=${recipientId}`,
+                method: "POST",
+            });
+            attempts.push({
+                url: `${API_BASE}/requests/cancel?userId=${currentUserId}&recipientUserId=${recipientId}`,
+                method: "DELETE",
+            });
+            attempts.push({
+                url: `${API_BASE}/requests/${currentUserId}/${recipientId}`,
+                method: "DELETE",
+            });
         }
-    };
-
-    const handleCancelOutgoingRequest = async (recipientUserId: number) => {
-        if (!hasValidUserId) return;
-        setFeedback(null);
-        try {
-            const response = await fetch(
-                `${API_BASE}/requests/cancel?userId=${parsedUserId}&recipientUserId=${recipientUserId}`,
-                { method: "POST" }
-            );
-            if (response.ok) {
-                setOutgoingRequests((prev) => prev.filter((r) => r.otherUserId !== recipientUserId));
-                setFeedback({ type: "success", message: "Sent friend request cancelled." });
-            } else {
-                const msg = await extractErrorMessage(response, "Could not cancel request.");
-                setFeedback({ type: "error", message: msg });
-            }
-        } catch (err) {
-            console.error("Error cancelling request:", err);
-            setFeedback({ type: "error", message: "Network error cancelling request." });
+        if (requestId !== null && requestId !== recipientId) {
+            attempts.push({
+                url: `${API_BASE}/requests/${requestId}`,
+                method: "DELETE",
+            });
         }
-    };
 
-    const handleRemoveFriend = async (friendUserId: number, e: React.MouseEvent) => {
+        for (const attempt of attempts) {
+            try {
+                const res = await fetch(attempt.url, {
+                    method: attempt.method,
+                    credentials: "include",
+                });
+                if (res.ok) {
+                    await loadAllSocialData(currentUserId);
+                    return;
+                }
+            } catch {
+                // Try next candidate endpoint shape
+            }
+        }
+    }
+
+    async function handleRemoveFriend(e: React.MouseEvent, friendUserId: number) {
         e.stopPropagation();
-        if (!hasValidUserId) return;
-        setFeedback(null);
-        try {
-            const response = await fetch(
-                `${API_BASE}/${parsedUserId}/${friendUserId}`,
-                { method: "DELETE" }
-            );
-
-            if (response.ok) {
-                setFriends((prev) => prev.filter((f) => f.userId !== friendUserId));
-                if (selectedFriend?.userId === friendUserId) {
-                    setSelectedFriend(null);
-                }
-                setFeedback({ type: "success", message: "Friend removed." });
-            } else {
-                const msg = await extractErrorMessage(response, "Could not remove friend.");
-                setFeedback({ type: "error", message: msg });
+        if (!currentUserId) return;
+        const res = await fetch(`${API_BASE}/${currentUserId}/${friendUserId}`, {
+            method: "DELETE",
+            credentials: "include",
+        });
+        if (res.ok) {
+            if (selectedFriend && extractUserId(selectedFriend, -1) === friendUserId) {
+                setSelectedFriend(null);
             }
-        } catch (err) {
-            console.error("Error removing friend:", err);
-            setFeedback({ type: "error", message: "Network error removing friend." });
+            await loadAllSocialData(currentUserId);
         }
-    };
+    }
 
-    const handleBlockUser = async (targetUserId: number, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        if (!hasValidUserId) return;
-        setFeedback(null);
-        try {
-            const response = await fetch(
-                `${API_BASE}/block/${parsedUserId}/${targetUserId}`,
-                { method: "POST" }
-            );
-
-            if (response.ok) {
-                if (selectedFriend?.userId === targetUserId) {
-                    setSelectedFriend(null);
-                }
-                setFeedback({ type: "success", message: "User blocked." });
-                await loadSocialData(parsedUserId);
-            } else {
-                const msg = await extractErrorMessage(response, "Could not block user.");
-                setFeedback({ type: "error", message: msg });
+    async function handleBlockUser(targetUserId: number) {
+        if (!currentUserId) return;
+        const res = await fetch(`${API_BASE}/block/${currentUserId}/${targetUserId}`, {
+            method: "POST",
+            credentials: "include",
+        });
+        if (res.ok) {
+            if (selectedFriend && extractUserId(selectedFriend, -1) === targetUserId) {
+                setSelectedFriend(null);
             }
-        } catch (err) {
-            console.error("Error blocking user:", err);
-            setFeedback({ type: "error", message: "Network error blocking user." });
+            await loadAllSocialData(currentUserId);
         }
-    };
+    }
 
-    const handleUnblockUser = async (targetUserId: number) => {
-        if (!hasValidUserId) return;
-        setFeedback(null);
-        try {
-            const response = await fetch(
-                `${API_BASE}/block/${parsedUserId}/${targetUserId}`,
-                { method: "DELETE" }
-            );
+    async function handleUnblockUser(targetUserId: number) {
+        if (!currentUserId) return;
+        const res = await fetch(`${API_BASE}/block/${currentUserId}/${targetUserId}`, {
+            method: "DELETE",
+            credentials: "include",
+        });
+        if (res.ok) await loadAllSocialData(currentUserId);
+    }
 
-            if (response.ok) {
-                setBlockedUsers((prev) => prev.filter((u) => u.userId !== targetUserId));
-                setFeedback({ type: "success", message: "User unblocked." });
-            } else {
-                const msg = await extractErrorMessage(response, "Could not unblock user.");
-                setFeedback({ type: "error", message: msg });
-            }
-        } catch (err) {
-            console.error("Error unblocking user:", err);
-            setFeedback({ type: "error", message: "Network error unblocking user." });
-        }
-    };
+    if (authChecking) {
+        return (
+            <div className="friends">
+                <div className="friends-header">
+                    <p className="no-friends-msg">Checking session...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (currentUserId === null) {
+        return (
+            <div className="friends">
+                <div className="friends-header">
+                    <div>
+                        <h1>Friends</h1>
+                        <p className="no-friends-msg">Log in to view your friends.</p>
+                    </div>
+                    <a href="/login" className="friends-input">
+                        Log in
+                    </a>
+                </div>
+            </div>
+        );
+    }
+
+    const selectedId = selectedFriend ? extractUserId(selectedFriend, 0) : 0;
+    const selectedUname = selectedFriend ? extractUsername(selectedFriend) : "";
+    const selectedDisplay = selectedFriend
+        ? extractDisplayName(selectedFriend, selectedUname || "Player")
+        : "";
+    const selectedBio =
+        selectedFriend && typeof unwrapUserRecord(selectedFriend)?.bio === "string"
+            ? String(unwrapUserRecord(selectedFriend)?.bio)
+            : "";
 
     return (
-        <main className="friends">
-            <section className="friends-header">
-                <div className="friends-details">
-                    <h1>Friends Management</h1>
-                    <p>Discover players, manage friend requests, and connect with your network</p>
+        <div className="friends">
+            <header className="friends-header">
+                <div>
+                    <h1>Friends</h1>
                 </div>
 
-                <div className="user-switcher" style={{ marginBottom: "10px" }}>
-                    <label style={{ marginRight: "8px", fontWeight: "bold" }}>Current User ID:</label>
-                    <input
-                        type="text"
-                        value={currentUserId}
-                        onChange={(e) => setCurrentUserId(e.target.value)}
-                        className="friends-input"
-                        style={{ width: "160px", display: "inline-block" }}
-                    />
+                <div className="friends-search-box" ref={headerSearchRef}>
+                    <form className="friends-add-form" onSubmit={handleFormSubmit}>
+                        <input
+                            type="text"
+                            className="friends-input"
+                            placeholder="Search or add username..."
+                            value={query}
+                            onFocus={() => {
+                                if (query.trim()) setDropdownOpen(true);
+                            }}
+                            onChange={(e) => {
+                                setQuery(e.target.value);
+                                setDropdownOpen(true);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape") setDropdownOpen(false);
+                            }}
+                        />
+                        <button type="submit" className="friends-input friends-action-btn">
+                            Add Friend
+                        </button>
+                    </form>
+
+                    {dropdownOpen && query.trim().length > 0 && (
+                        <div className="friends-dropdown">
+                            {suggestedUsernames.length === 0 ? (
+                                <div className="friends-dropdown-empty">No usernames found</div>
+                            ) : (
+                                suggestedUsernames.map((item) => (
+                                    <div
+                                        key={`${item.username}-${item.id}`}
+                                        className="friends-dropdown-item"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handlePickSuggestion(item);
+                                        }}
+                                    >
+                                        <span className="friends-dropdown-handle">@{item.username}</span>
+                                        {!item.isFriend && (
+                                            <button
+                                                type="button"
+                                                className="friends-dropdown-add"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    sendFriendRequestForUsername(item.username);
+                                                }}
+                                            >
+                                                Add
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
                 </div>
+            </header>
 
-                <form className="friends-add-form" onSubmit={handleDiscoverSubmit}>
-                    <input
-                        type="text"
-                        placeholder="Find players by username..."
-                        value={playerLookupQuery}
-                        onChange={(e) => {
-                            setPlayerLookupQuery(e.target.value);
-                            if (activeTab !== "discover" && e.target.value.trim()) {
-                                setActiveTab("discover");
-                            }
-                        }}
-                        className="friends-input"
-                    />
-                    <button className="friends-edit" type="submit">
-                        Send Request
-                    </button>
-                </form>
-
-                {feedback && (
-                    <p className={`friends-feedback friends-feedback--${feedback.type}`}>
-                        {feedback.message}
-                    </p>
-                )}
-            </section>
-
-            <section className="friends-stats">
-                <div>Total Friends: {friends.length}</div>
-                <div>Online: {friends.filter((f) => f.status !== "Offline").length}</div>
-                <div>Incoming Requests: {incomingRequests.length}</div>
-                <div>Sent Requests: {outgoingRequests.length}</div>
-            </section>
-
-            <div className="friends-tabs" style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                <button
-                    type="button"
-                    className="friends-edit"
-                    onClick={() => setActiveTab("friends")}
-                >
-                    Friends ({friends.length})
-                </button>
-                <button
-                    type="button"
-                    className="friends-edit"
-                    onClick={() => setActiveTab("discover")}
-                >
-                    Find Players
-                </button>
-                <button
-                    type="button"
-                    className="friends-edit"
-                    onClick={() => setActiveTab("blocked")}
-                >
-                    Blocked ({blockedUsers.length})
-                </button>
+            <div className="friends-stats">
+                <div>Friends: <strong>{friends.length}</strong></div>
+                <div>Incoming: <strong>{incomingRequests.length}</strong></div>
+                <div>Outgoing: <strong>{outgoingRequests.length}</strong></div>
+                <div>Blocked: <strong>{blockedUsers.length}</strong></div>
             </div>
 
             <div className="friends-layout">
                 <div className="friends-main-content">
-                    {activeTab === "friends" && (
-                        <section className="friends-list-section">
-                            <h2>Your Friends</h2>
+                    <section className="friends-list-section">
+                        <h2>Current Friends</h2>
 
-                            <div className="friends-search-container">
-                                <input
-                                    type="text"
-                                    placeholder="Filter your friends..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="friends-search-input"
-                                />
-                            </div>
-
+                        {friends.length === 0 ? (
+                            <p className="no-friends-msg">No friends yet.</p>
+                        ) : (
                             <div className="friends-grid">
-                                {loading ? (
-                                    <p>Loading friends...</p>
-                                ) : filteredFriends.length > 0 ? (
-                                    filteredFriends.map((friend) => (
+                                {friends.map((friend, idx) => {
+                                    const fid = extractUserId(friend, idx);
+                                    const uname = extractUsername(friend);
+                                    const display = extractDisplayName(friend, uname || `User #${fid}`);
+                                    const statusText =
+                                        typeof unwrapUserRecord(friend)?.status === "string"
+                                            ? String(unwrapUserRecord(friend)?.status)
+                                            : "Friend";
+                                    return (
                                         <div
-                                            key={friend.userId}
+                                            key={`${fid}-${idx}`}
                                             className="friend-card"
                                             onClick={() => setSelectedFriend(friend)}
                                         >
-                                            <div className="friends-card-avatar">
-                                                <span>{friend.initials}</span>
-                                            </div>
+                                            <div className="friends-card-avatar">{getInitials(display)}</div>
                                             <div className="friend-card-info">
-                                                <h3>{friend.name}</h3>
-                                                <p>@{friend.username} · {friend.location}</p>
-                                                <span className="friend-status">{friend.status}</span>
+                                                <h3>{display}</h3>
+                                                {uname && <p>@{uname}</p>}
+                                                <span className="friend-status">{statusText}</span>
                                             </div>
                                             <div className="friend-card-actions">
                                                 <button
-                                                    className="friend-delete-btn"
                                                     type="button"
-                                                    onClick={(e) => handleRemoveFriend(friend.userId, e)}
+                                                    className="friend-delete-btn"
+                                                    onClick={(e) => handleRemoveFriend(e, fid)}
                                                 >
                                                     Remove
                                                 </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </section>
+                </div>
+
+                <aside className="friends-sidebar">
+                    <section className="friends-profile-preview">
+                        <h2>Profile Preview</h2>
+                        {selectedFriend ? (
+                            <div className="preview-details">
+                                <div className="preview-avatar">{getInitials(selectedDisplay)}</div>
+                                <h3>{selectedDisplay}</h3>
+                                {selectedUname && <p>@{selectedUname}</p>}
+                                {selectedBio && <p>{selectedBio}</p>}
+                                <button
+                                    type="button"
+                                    className="friend-delete-btn"
+                                    style={{ marginTop: "8px" }}
+                                    onClick={() => handleBlockUser(selectedId)}
+                                >
+                                    Block
+                                </button>
+                            </div>
+                        ) : (
+                            <p className="preview-placeholder">Select a friend to preview.</p>
+                        )}
+                    </section>
+
+                    <section className="friends-requests">
+                        <h2>Incoming Requests</h2>
+                        {incomingRequests.length === 0 ? (
+                            <p className="requests-placeholder">No incoming requests.</p>
+                        ) : (
+                            <div className="friends-grid">
+                                {incomingRequests.map((req, i) => {
+                                    const id = toFiniteNumber(req.requesterUserId ?? req.requesterId ?? req.id) ?? i;
+                                    const name = extractRequestLabel(req, id);
+                                    return (
+                                        <div key={`${id}-${i}`} className="friend-card">
+                                            <div className="friend-card-info">
+                                                <h3>{name}</h3>
+                                            </div>
+                                            <div className="friend-card-actions" style={{ gap: "6px" }}>
                                                 <button
-                                                    className="friend-delete-btn"
                                                     type="button"
-                                                    onClick={(e) => handleBlockUser(friend.userId, e)}
+                                                    className="friends-input friends-action-btn"
+                                                    onClick={() => handleAcceptRequest(id)}
                                                 >
-                                                    Block
+                                                    Accept
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="friend-delete-btn"
+                                                    onClick={() => handleDeclineRequest(id)}
+                                                >
+                                                    Decline
                                                 </button>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="no-friends-msg">No friends found.</p>
-                                )}
+                                    );
+                                })}
                             </div>
-                        </section>
-                    )}
+                        )}
+                    </section>
 
-                    {activeTab === "discover" && (
-                        <section className="friends-list-section">
-                            <h2>Player Directory</h2>
+                    <section className="friends-requests">
+                        <h2>Outgoing Requests</h2>
+                        {outgoingRequests.length === 0 ? (
+                            <p className="requests-placeholder">No outgoing requests.</p>
+                        ) : (
                             <div className="friends-grid">
-                                {searchingPlayers ? (
-                                    <p>Searching players...</p>
-                                ) : searchResults.length > 0 ? (
-                                    searchResults.map(({ user, relationship }) => (
-                                        <div key={user.userId} className="friend-card">
-                                            <div className="friends-card-avatar">
-                                                <span>{user.initials}</span>
-                                            </div>
+                                {outgoingRequests.map((req, i) => {
+                                    const recipientId = extractRecipientId(req);
+                                    const fallbackKey = recipientId ?? req.id ?? i;
+                                    const name = extractRequestLabel(req, fallbackKey);
+                                    return (
+                                        <div key={`${fallbackKey}-${i}`} className="friend-card">
                                             <div className="friend-card-info">
-                                                <h3>{user.name}</h3>
-                                                <p>@{user.username} · {user.location}</p>
-                                                <span className="friend-status">{user.status}</span>
+                                                <h3>{name}</h3>
                                             </div>
                                             <div className="friend-card-actions">
-                                                {relationship === "NONE" && (
-                                                    <button
-                                                        className="friends-edit"
-                                                        type="button"
-                                                        onClick={() => sendRequestToUsername(user.username)}
-                                                    >
-                                                        Add Friend
-                                                    </button>
-                                                )}
-                                                {relationship === "FRIEND" && <span>Friends</span>}
-                                                {relationship === "OUTGOING_PENDING" && <span>Request Sent</span>}
-                                                {relationship === "INCOMING_PENDING" && <span>Requested You</span>}
                                                 <button
-                                                    className="friend-delete-btn"
                                                     type="button"
-                                                    onClick={() => handleBlockUser(user.userId)}
+                                                    className="friend-delete-btn"
+                                                    onClick={() => handleCancelRequest(req)}
                                                 >
-                                                    Block
+                                                    Cancel
                                                 </button>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="no-friends-msg">
-                                        Type a username above to search registered players.
-                                    </p>
-                                )}
+                                    );
+                                })}
                             </div>
-                        </section>
-                    )}
+                        )}
+                    </section>
 
-                    {activeTab === "blocked" && (
-                        <section className="friends-list-section">
-                            <h2>Blocked Users</h2>
+                    <section className="friends-requests">
+                        <h2>Blocked</h2>
+                        {blockedUsers.length === 0 ? (
+                            <p className="requests-placeholder">No blocked users.</p>
+                        ) : (
                             <div className="friends-grid">
-                                {blockedUsers.length > 0 ? (
-                                    blockedUsers.map((user) => (
-                                        <div key={user.userId} className="friend-card">
-                                            <div className="friends-card-avatar">
-                                                <span>{user.initials}</span>
-                                            </div>
+                                {blockedUsers.map((u, i) => {
+                                    const uid = extractUserId(u, i);
+                                    const uname = extractUsername(u) || `User #${uid}`;
+                                    return (
+                                        <div key={`${uid}-${i}`} className="friend-card">
                                             <div className="friend-card-info">
-                                                <h3>{user.name}</h3>
-                                                <p>@{user.username}</p>
+                                                <h3>{uname}</h3>
                                             </div>
                                             <div className="friend-card-actions">
                                                 <button
-                                                    className="friends-edit"
                                                     type="button"
-                                                    onClick={() => handleUnblockUser(user.userId)}
+                                                    className="friends-input friends-action-btn"
+                                                    onClick={() => handleUnblockUser(uid)}
                                                 >
                                                     Unblock
                                                 </button>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="no-friends-msg">No blocked users.</p>
-                                )}
+                                    );
+                                })}
                             </div>
-                        </section>
-                    )}
-                </div>
-
-                <aside className="friends-sidebar">
-                    <section className="friends-profile-preview">
-                        <h2>Friend Profile Preview</h2>
-                        {selectedFriend ? (
-                            <div className="preview-details">
-                                <div className="preview-avatar"><span>{selectedFriend.initials}</span></div>
-                                <h3>{selectedFriend.name}</h3>
-                                <p><strong>Username:</strong> @{selectedFriend.username}</p>
-                                <p><strong>Location:</strong> {selectedFriend.location}</p>
-                                <p><strong>Games Played:</strong> {selectedFriend.gamesPlayed}</p>
-                                <p><strong>Status:</strong> {selectedFriend.status}</p>
-                                <p><strong>Duel Link ID:</strong> {selectedFriend.duelLinkId}</p>
-                            </div>
-                        ) : (
-                            <p className="preview-placeholder">Click on any friend from the list to view their mini-profile details.</p>
-                        )}
-                    </section>
-
-                    <section className="friends-requests">
-                        <h2>Incoming Requests ({incomingRequests.length})</h2>
-                        {incomingRequests.length > 0 ? (
-                            <ul className="friend-requests-list">
-                                {incomingRequests.map((req) => (
-                                    <li key={req.otherUserId} className="friend-request-item">
-                                        <div>
-                                            <strong>{req.otherName}</strong>
-                                            <span> (@{req.otherUsername})</span>
-                                        </div>
-                                        <div className="friend-request-actions">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleAcceptRequest(req.otherUserId)}
-                                            >
-                                                Accept
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDeclineRequest(req.otherUserId)}
-                                            >
-                                                Decline
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="requests-placeholder">No incoming requests.</p>
-                        )}
-                    </section>
-
-                    <section className="friends-requests">
-                        <h2>Sent Requests ({outgoingRequests.length})</h2>
-                        {outgoingRequests.length > 0 ? (
-                            <ul className="friend-requests-list">
-                                {outgoingRequests.map((req) => (
-                                    <li key={req.otherUserId} className="friend-request-item">
-                                        <div>
-                                            <strong>{req.otherName}</strong>
-                                            <span> (@{req.otherUsername})</span>
-                                        </div>
-                                        <div className="friend-request-actions">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleCancelOutgoingRequest(req.otherUserId)}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="requests-placeholder">No sent requests pending.</p>
                         )}
                     </section>
                 </aside>
             </div>
-        </main>
+        </div>
     );
 }
-
-export default Friends;
