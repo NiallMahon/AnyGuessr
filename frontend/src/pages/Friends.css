@@ -1,50 +1,133 @@
 .friends {
     width: 100%;
-    padding: 40px;
+    padding: 28px 32px;
     box-sizing: border-box;
     text-align: left;
 }
 
 .friends-header {
+    position: relative;
+    z-index: 20;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 24px;
-    padding: 24px;
-    border: 1px solid var(--border);
+    gap: 16px;
+    padding: 18px 20px;
+    border: 1px solid color-mix(in srgb, var(--border) 75%, #4f6bed 25%);
     border-radius: 8px;
     background-color: var(--bg);
 }
 
-.friends-add-form {
-    display: flex;
-    gap: 12px;
+.friends-header h1 {
+    margin: 0 0 2px;
+    font-size: 1.5rem;
 }
 
-.friends-input,
-.friends-search-input {
-    padding: 10px 14px;
+.friends-search-box {
+    position: relative;
+}
+
+.friends-add-form {
+    display: flex;
+    gap: 8px;
+}
+
+.friends-input {
+    padding: 8px 12px;
     border: 1px solid var(--border);
     border-radius: 4px;
-    background-color: transparent;
+    background-color: rgba(15, 23, 42, 0.35);
     color: var(--text);
+    font-size: 0.88rem;
     outline: none;
 }
 
-.friends-search-container {
-    margin-bottom: 20px;
+.friends-input:focus {
+    border-color: #6382ff;
 }
 
-.friends-search-input {
-    width: 100%;
-    box-sizing: border-box;
+.friends-action-btn {
+    border-color: rgba(99, 130, 255, 0.45);
+    background-color: rgba(99, 130, 255, 0.14);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.friends-action-btn:hover {
+    background-color: rgba(99, 130, 255, 0.28);
+    border-color: rgba(99, 130, 255, 0.75);
+}
+
+.friends-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid rgba(99, 130, 255, 0.45);
+    border-radius: 6px;
+    background-color: #111622;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+}
+
+.friends-dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 11px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.friends-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.friends-dropdown-item:hover {
+    background-color: rgba(99, 130, 255, 0.16);
+}
+
+.friends-dropdown-handle {
+    font-size: 0.86rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.friends-dropdown-add {
+    padding: 4px 9px;
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    border-radius: 4px;
+    background-color: rgba(52, 211, 153, 0.14);
+    color: #a7f3d0;
+    font-size: 0.76rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.friends-dropdown-add:hover {
+    background-color: rgba(52, 211, 153, 0.28);
+}
+
+.friends-dropdown-empty {
+    padding: 8px 11px;
+    font-size: 0.82rem;
+    opacity: 0.7;
 }
 
 .friends-stats {
     display: flex;
     width: 100%;
-    margin-top: 24px;
-    padding: 20px;
+    margin-top: 16px;
+    padding: 14px 16px;
     border: 1px solid var(--border);
     border-radius: 8px;
     box-sizing: border-box;
@@ -54,29 +137,40 @@
 .friends-stats div {
     flex: 1;
     text-align: center;
-    font-size: 16px;
+    font-size: 0.9rem;
     color: var(--text);
 }
 
+.friends-stats strong {
+    color: #93abff;
+}
+
 .friends-layout {
-    margin-top: 32px;
+    margin-top: 20px;
     display: grid;
     grid-template-columns: 3fr 1fr;
-    gap: 24px;
+    gap: 18px;
+    align-items: stretch;
     width: 100%;
 }
 
-.friends-main-content,
+.friends-main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .friends-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
 }
 
 .friends-list-section {
+    flex: 1;
     width: 100%;
-    min-height: 300px;
-    padding: 24px;
+    min-height: 100%;
+    padding: 18px 20px;
     border: 1px solid var(--border);
     border-radius: 8px;
     box-sizing: border-box;
@@ -84,40 +178,44 @@
 }
 
 .friends-list-section h2 {
-    margin: 0 0 20px;
+    margin: 0 0 14px;
+    font-size: 1.15rem;
 }
 
 .friends-grid {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
 }
 
 .friend-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px;
-    border: 1px solid var(--border);
+    gap: 12px;
+    padding: 11px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 6px;
+    background-color: rgba(15, 23, 42, 0.28);
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .friend-card:hover {
-    background-color: var(--border);
+    background-color: rgba(99, 130, 255, 0.12);
+    border-color: rgba(99, 130, 255, 0.45);
 }
 
 .friends-card-avatar {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background-color: var(--border);
-    color: var(--text);
-    font-size: 1.1rem;
+    background-color: rgba(99, 130, 255, 0.2);
+    border: 1px solid rgba(99, 130, 255, 0.35);
+    color: #c7d4ff;
+    font-size: 0.95rem;
     font-weight: bold;
 }
 
@@ -126,22 +224,25 @@
 }
 
 .friend-card-info h3 {
-    margin: 0 0 4px;
+    margin: 0 0 2px;
+    font-size: 0.96rem;
     color: var(--text);
 }
 
 .friend-card-info p {
-    margin: 0 0 4px;
-    font-size: 0.85rem;
+    margin: 0 0 3px;
+    font-size: 0.8rem;
     color: var(--text);
     opacity: 0.8;
 }
 
 .friend-status {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     padding: 2px 6px;
     border-radius: 4px;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    background-color: rgba(52, 211, 153, 0.1);
+    color: #a7f3d0;
 }
 
 .friend-card-actions {
@@ -150,23 +251,26 @@
 }
 
 .friend-delete-btn {
-    padding: 8px 12px;
-    border: 1px solid #e53e3e;
+    padding: 6px 10px;
+    border: 1px solid rgba(248, 113, 113, 0.65);
     border-radius: 4px;
-    background-color: transparent;
-    color: #e53e3e;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    font-size: 0.8rem;
     cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .friend-delete-btn:hover {
-    background-color: #e53e3e;
+    background-color: #dc2626;
+    border-color: #dc2626;
     color: white;
 }
 
 .friends-profile-preview,
 .friends-requests {
     width: 100%;
-    padding: 20px;
+    padding: 16px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background-color: var(--bg);
@@ -176,29 +280,32 @@
 .friends-profile-preview h2,
 .friends-requests h2 {
     margin-top: 0;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    font-size: 1.05rem;
 }
 
 .preview-avatar {
-    width: 70px;
-    height: 70px;
+    width: 54px;
+    height: 54px;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background-color: var(--border);
-    color: var(--text);
-    font-size: 1.4rem;
+    background-color: rgba(99, 130, 255, 0.2);
+    border: 1px solid rgba(99, 130, 255, 0.35);
+    color: #c7d4ff;
+    font-size: 1.15rem;
     font-weight: bold;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .preview-details h3 {
-    margin: 0 0 8px;
+    margin: 0 0 4px;
+    font-size: 1rem;
 }
 
 .preview-details p {
-    margin: 4px 0;
-    font-size: 0.9rem;
+    margin: 3px 0;
+    font-size: 0.84rem;
 }
 
 .preview-placeholder,
@@ -206,6 +313,6 @@
 .no-friends-msg {
     color: var(--text);
     opacity: 0.7;
-    font-size: 0.9rem;
+    font-size: 0.84rem;
     margin: 0;
 }
