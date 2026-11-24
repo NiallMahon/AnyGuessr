@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Entity
-@Table(name = "friends")
+@Table(name = "friend_links")
 public class FriendLink {
 
     public enum Status {
@@ -73,21 +73,24 @@ public class FriendLink {
     @Column(name = "requested_by", nullable = false)
     private Long requestedBy;
 
-    @Column(name = "status", length = 10, nullable = false)
+    @Column(name = "status", nullable = false)
     private String status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     public FriendLink() {}
 
-    public FriendLink(Long firstUserId, Long secondUserId, Long requestedBy, Status status) {
-        long minId = Math.min(firstUserId, secondUserId);
-        long maxId = Math.max(firstUserId, secondUserId);
-        this.id = new FriendLinkId(minId, maxId);
+    public FriendLink(Long userIdA, Long userIdB, Long requestedBy, Status status) {
+        this.id = new FriendLinkId(userIdA, userIdB);
         this.requestedBy = requestedBy;
-        this.status = status.name();
-        this.createdAt = Instant.now();
+        this.status = status != null ? status.name() : null;
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public FriendLinkId getId() {
@@ -120,6 +123,7 @@ public class FriendLink {
 
     public void setStatus(String status) {
         this.status = status;
+        this.updatedAt = Instant.now();
     }
 
     public Instant getCreatedAt() {
@@ -128,5 +132,13 @@ public class FriendLink {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * REST controller exposing endpoints for friends, friend requests, search, and blocking.
+ */
 @RestController
 @RequestMapping("/api/friends")
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}, allowCredentials = "true")
@@ -30,15 +33,24 @@ public class FriendController {
 
     public record SendFriendRequestBody(Long requesterUserId, String targetUsername) {}
 
+    /**
+     * Creates a {@code FriendController} backed by {@link FriendService}.
+     */
     public FriendController(FriendService friendService) {
         this.friendService = friendService;
     }
 
+    /**
+     * Returns accepted friends for the given user.
+     */
     @GetMapping("/user/{userId}")
     public List<UserSummary> getFriendsByUserId(@PathVariable Long userId) {
         return friendService.getFriendsByUserId(userId);
     }
 
+    /**
+     * Searches players by username with relationship status for the given user.
+     */
     @GetMapping("/search")
     public List<UserSearchResult> searchPlayers(
             @RequestParam Long userId,
@@ -47,22 +59,34 @@ public class FriendController {
         return friendService.searchPlayers(userId, query);
     }
 
+    /**
+     * Returns incoming pending friend requests for the given user.
+     */
     @GetMapping("/requests/incoming/{userId}")
     public List<RequestView> getIncomingRequests(@PathVariable Long userId) {
         return friendService.getIncomingPendingRequests(userId);
     }
 
+    /**
+     * Returns outgoing pending friend requests for the given user.
+     */
     @GetMapping("/requests/outgoing/{userId}")
     public List<RequestView> getOutgoingRequests(@PathVariable Long userId) {
         return friendService.getOutgoingPendingRequests(userId);
     }
 
+    /**
+     * Sends a new friend request to the target username.
+     */
     @PostMapping("/requests")
     public ResponseEntity<FriendLink> sendFriendRequest(@RequestBody SendFriendRequestBody body) {
         FriendLink created = friendService.sendFriendRequest(body.requesterUserId(), body.targetUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    /**
+     * Accepts an incoming pending friend request.
+     */
     @PostMapping("/requests/accept")
     public ResponseEntity<Void> acceptRequest(
             @RequestParam Long userId,
@@ -72,6 +96,9 @@ public class FriendController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Declines an incoming pending friend request.
+     */
     @PostMapping("/requests/decline")
     public ResponseEntity<Void> declineRequest(
             @RequestParam Long userId,
@@ -81,6 +108,9 @@ public class FriendController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Cancels an outgoing pending friend request.
+     */
     @PostMapping("/requests/cancel")
     public ResponseEntity<Void> cancelRequest(
             @RequestParam Long userId,
@@ -90,6 +120,9 @@ public class FriendController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Removes an existing mutual friendship between two users.
+     */
     @DeleteMapping("/{userId}/{friendUserId}")
     public ResponseEntity<Void> removeFriend(
             @PathVariable Long userId,
@@ -99,11 +132,17 @@ public class FriendController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Returns users blocked by the given user.
+     */
     @GetMapping("/blocked/{userId}")
     public List<UserSummary> getBlockedUsers(@PathVariable Long userId) {
         return friendService.getBlockedUsers(userId);
     }
 
+    /**
+     * Blocks a target user for the given user.
+     */
     @PostMapping("/block/{userId}/{targetUserId}")
     public ResponseEntity<Void> blockUser(
             @PathVariable Long userId,
@@ -113,6 +152,9 @@ public class FriendController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Unblocks a target user for the given user.
+     */
     @DeleteMapping("/block/{userId}/{targetUserId}")
     public ResponseEntity<Void> unblockUser(
             @PathVariable Long userId,
@@ -122,8 +164,11 @@ public class FriendController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Formats {@link ResponseStatusException} errors into a JSON message payload.
+     */
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> handleStatusException(ResponseStatusException ex) {
+    public ResponseEntity handleStatusException(ResponseStatusException ex) {
         String message = ex.getReason() != null ? ex.getReason() : "Request failed";
         return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
     }

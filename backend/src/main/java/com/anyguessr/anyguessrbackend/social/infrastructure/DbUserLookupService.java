@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
+/**
+ * Database-backed implementation of {@link UserLookupService} querying user records via JPA native SQL.
+ */
 @Service
 public class DbUserLookupService implements UserLookupService {
 
@@ -18,6 +21,9 @@ public class DbUserLookupService implements UserLookupService {
                     "(SELECT COUNT(*) FROM user_games g WHERE g.user_id = u.user_id) AS games_played " +
                     "FROM users u WHERE u.deleted_at IS NULL ";
 
+    /**
+     * Finds an active user summary by ID.
+     */
     @Override
     public Optional<UserSummary> findById(Long userId) {
         if (userId == null) {
@@ -29,6 +35,9 @@ public class DbUserLookupService implements UserLookupService {
         return rows.stream().findFirst().map(this::mapRow);
     }
 
+    /**
+     * Finds an active user summary by username, ignoring case.
+     */
     @Override
     public Optional<UserSummary> findByUsernameIgnoreCase(String username) {
         if (username == null || username.isBlank()) {
@@ -40,6 +49,9 @@ public class DbUserLookupService implements UserLookupService {
         return rows.stream().findFirst().map(this::mapRow);
     }
 
+    /**
+     * Finds active user summaries matching any of the given user IDs.
+     */
     @Override
     public List<UserSummary> findAllByIds(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
@@ -51,6 +63,9 @@ public class DbUserLookupService implements UserLookupService {
         return rows.stream().map(this::mapRow).toList();
     }
 
+    /**
+     * Searches active users whose usernames contain the query string, up to 15 results.
+     */
     @Override
     public List<UserSummary> searchByUsername(String query) {
         if (query == null || query.isBlank()) {
@@ -65,6 +80,9 @@ public class DbUserLookupService implements UserLookupService {
         return rows.stream().map(this::mapRow).toList();
     }
 
+    /**
+     * Maps a native query result row into a {@link UserSummary}.
+     */
     private UserSummary mapRow(Object raw) {
         Object[] cols = (Object[]) raw;
         Long userId = ((Number) cols[0]).longValue();
@@ -83,6 +101,9 @@ public class DbUserLookupService implements UserLookupService {
         );
     }
 
+    /**
+     * Builds up to two uppercase initials from a username.
+     */
     private String buildInitials(String username) {
         String clean = username.trim();
         String[] parts = clean.split("[._\\s-]+");
