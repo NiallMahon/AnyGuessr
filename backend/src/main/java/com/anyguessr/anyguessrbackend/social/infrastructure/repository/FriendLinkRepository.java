@@ -2,6 +2,7 @@ package com.anyguessr.anyguessrbackend.social.infrastructure.repository;
 
 import com.anyguessr.anyguessrbackend.social.domain.FriendLink;
 import com.anyguessr.anyguessrbackend.social.domain.FriendLink.FriendLinkId;
+
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

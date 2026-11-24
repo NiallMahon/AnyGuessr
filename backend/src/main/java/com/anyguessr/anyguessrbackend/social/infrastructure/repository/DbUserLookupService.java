@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.social.infrastructure;
+package com.anyguessr.anyguessrbackend.social.infrastructure.repository;
 
 import com.anyguessr.anyguessrbackend.social.app.UserLookupService;
 import jakarta.persistence.EntityManager;

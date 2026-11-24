@@ -2,7 +2,6 @@ package com.anyguessr.anyguessrbackend.identity.infrastructure.persistence.repos
 
 import com.anyguessr.anyguessrbackend.identity.domain.User;
 import com.anyguessr.anyguessrbackend.identity.domain.UserRepository;
-import com.anyguessr.anyguessrbackend.identity.domain.UserRepository.UsernameOrEmailTakenException;
 import com.anyguessr.anyguessrbackend.identity.infrastructure.persistence.entity.UserEntity;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
