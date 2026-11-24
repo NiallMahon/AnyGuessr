@@ -1,4 +1,4 @@
-package com.anyguessr.anyguessrbackend.social.app;
+package com.anyguessr.anyguessrbackend.social;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.anyguessr.anyguessrbackend.social.domain.BlockedUser;
+import com.anyguessr.anyguessrbackend.social.app.UserLookupService;
+import com.anyguessr.anyguessrbackend.social.app.FriendService;
 import com.anyguessr.anyguessrbackend.social.infrastructure.repository.BlockedUserRepository;
 import com.anyguessr.anyguessrbackend.social.infrastructure.repository.FriendLinkRepository;
 import java.util.Optional;
