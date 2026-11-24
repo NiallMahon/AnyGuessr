@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+/**
+ * HTTP endpoints for local registration and login.
+ */
 @RestController
 @RequestMapping("/auth")
 @CrossOrigin(origins = {
@@ -25,14 +28,24 @@ public class AuthController {
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
-
+    /**
+     * Registers a local account.
+     *
+     * @param request the registration details sent by the client
+     * @return a response containing the new user's ID
+     */
     @PostMapping("/register")
     public AuthResponse register(
             @RequestBody RegisterRequest request
     ) {
         return authService.register(request);
     }
-
+    /**
+     * Authenticates a local account.
+     *
+     * @param request login credentials
+     * @return the authenticated user's ID
+     */
     @PostMapping("/login")
     public AuthResponse login(
             @RequestBody LoginRequest request

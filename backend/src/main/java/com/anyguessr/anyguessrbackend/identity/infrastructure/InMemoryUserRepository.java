@@ -10,7 +10,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Profile;
 import java.util.concurrent.atomic.AtomicLong;
-
+/**
+ * Stores users in memory when the memory profile is active.
+ * Data is lost when the application stops.
+ */
 @Profile("memory")
 @Repository
 public class InMemoryUserRepository implements UserRepository {

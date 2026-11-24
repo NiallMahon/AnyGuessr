@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
-
+/**
+ * Handles registration and password authentication for local accounts.
+ */
 @Service
 public class AuthService {
 
@@ -25,7 +27,14 @@ public class AuthService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
-
+    /**
+     * Registers a local user after validating the request and hashing the password.
+     *
+     * @param request the registration details
+     * @return a response containing the new user's ID
+     * @throws ResponseStatusException if required details are missing or the
+     *         username or email is already in use
+     */
     public AuthResponse register(RegisterRequest request) {
         validateRegisterRequest(request);
 
@@ -63,7 +72,14 @@ public class AuthService {
             );
         }
     }
-
+    
+    /**
+     * Authenticates a local user by email or username and password.
+     *
+     * @param request the login credentials
+     * @return a response containing the authenticated user's ID
+     * @throws ResponseStatusException if credentials are missing or invalid
+     */
     public AuthResponse login(LoginRequest request) {
         if (request.identifier() == null || request.password() == null) {
             throw new ResponseStatusException(
