@@ -1,4 +1,3 @@
-
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
@@ -8,11 +7,9 @@ import {
 } from "../services/gameplayAPI";
 import GameResult from "../components/GameResult";
 import QuizMap from "../components/Map/QuizMap";
+import "./Quiz.css";
 
-/**
- * Quiz session details passed from the map selector
- * through React Router navigation state.
- */
+/** Session details passed from the Map Selector through React Router. */
 interface QuizLocationState {
   sessionId: string;
   mapId: string;
@@ -20,74 +17,60 @@ interface QuizLocationState {
 }
 
 /**
- * Displays an active quiz and handles gameplay progress.
- *
- * Players select regions by clicking polygons on the map.
- * Guess evaluation and scoring are handled by the backend.
+ * Presents the playable polygon map and quiz progress.
+ * The backend remains responsible for correctness, scoring, and correction rules.
  */
 function Quiz() {
   const location = useLocation();
   const navigate = useNavigate();
+  const quizState = location.state as QuizLocationState | null;
 
-  const quizState =
-    location.state as QuizLocationState | null;
-
-  const [currentTarget, setCurrentTarget] =
-    useState(quizState?.initialTarget ?? "");
-
-  const [lastResult, setLastResult] =
-    useState<GuessResponse | null>(null);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [sending, setSending] =
-    useState(false);
-
-  const [error, setError] =
-    useState<string | null>(null);
+  const [currentTarget, setCurrentTarget] = useState(
+    quizState?.initialTarget ?? ""
+  );
+  const [lastResult, setLastResult] = useState<GuessResponse | null>(null);
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!quizState) {
     return (
-      <div
-        style={{
-          padding: "2rem",
-          textAlign: "center",
-        }}
-      >
-        <h1>No active quiz</h1>
-
-        <p>
-          Start a quiz from the map selector.
-        </p>
-
-        <button
-          onClick={() => navigate("/mapselector")}
-        >
-          Choose a map
-        </button>
-      </div>
+      <main className="quiz-page">
+        <section className="quiz-empty-card">
+          <p className="quiz-eyebrow">ANYGUESSR / PLAY</p>
+          <h1>No active quiz</h1>
+          <p>Choose a map to start a new quiz.</p>
+          <button
+            type="button"
+            className="quiz-action quiz-action--primary"
+            onClick={() => navigate("/mapselector")}
+          >
+            Choose a map
+          </button>
+        </section>
+      </main>
     );
   }
 
-  const sessionId = quizState.sessionId;
-  const mapId = quizState.mapId;
+  const { sessionId, mapId } = quizState;
+  const complete = lastResult?.quizComplete ?? false;
+  const correctAnswers = lastResult?.correctAnswers ?? 0;
+  const answeredTargets = lastResult?.answeredTargets ?? 0;
+  const accuracy = lastResult?.accuracy ?? 0;
 
-  /**
-   * Starts a new quiz using the same selected map.
-   */
+  /** Starts a fresh quiz on the same map, without resetting domain rules locally. */
   async function playAgain() {
-    const userId =
-      sessionStorage.getItem("userId");
-
+    if (restarting) return;
+    setRestarting(true);
     setError(null);
+
+    const storedUserId = sessionStorage.getItem("userId");
 
     try {
       const quiz = await startQuiz(
         mapId,
-        userId === null
-          ? null
-          : Number(userId)
+        storedUserId === null ? null : Number(storedUserId)
       );
 
       navigate("/quiz", {
@@ -98,38 +81,22 @@ function Quiz() {
         },
       });
     } catch (err) {
-      console.error(err);
-
-      setError("Unable to start the quiz.");
+      console.error("Unable to restart the quiz:", err);
+      setError("Unable to start another quiz. Please try again.");
+      setRestarting(false);
     }
   }
 
-  /**
-   * Sends the clicked polygon's region ID to the backend.
-   *
-   * Updates feedback, progress, correction state and score
-   * using the response returned by the gameplay API.
-   */
+  /** Submits the selected polygon and uses the backend response as source of truth. */
   async function handleGuess(regionId: string) {
-    if (
-      sending ||
-      lastResult?.quizComplete
-    ) {
-      return;
-    }
+    if (sending || complete) return;
 
-    const correcting =
-      lastResult?.correctionRequired ?? false;
-
+    const correcting = lastResult?.correctionRequired ?? false;
     setSending(true);
     setError(null);
 
     try {
-      const result = await submitGuess(
-        sessionId,
-        regionId
-      );
-
+      const result = await submitGuess(sessionId, regionId);
       setLastResult(result);
 
       if (result.quizComplete) {
@@ -137,127 +104,155 @@ function Quiz() {
         return;
       }
 
-      setCurrentTarget(
-        result.currentTargetRegionId
-      );
+      setCurrentTarget(result.currentTargetRegionId);
 
       if (correcting && result.correct) {
-        setMessage(
-          "Correction accepted. Moving to the next target."
-        );
+        setMessage("Correction accepted. Moving to the next target.");
       } else if (result.correct) {
-        setMessage("Correct!");
+        setMessage("Correct! Well done.");
       } else if (result.correctionRequired) {
-        setMessage("Incorrect. Select the requested region to continue."
-        );
+        setMessage("Not quite. Select the requested region to continue.");
+      } else {
+        setMessage("Selection recorded.");
       }
     } catch (err) {
-      console.error(err);
-
-      setError("Unable to submit the guess.");
+      console.error("Unable to submit guess:", err);
+      setError("Unable to submit your guess. Please try again.");
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <div
-      style={{
-        padding: "2rem",
-        textAlign: "center",
-      }}
-    >
-      <h1>Core Quiz Gameplay</h1>
+    <main className="quiz-page">
+      <div className="quiz-shell">
+        <header className="quiz-header">
+          <p className="quiz-eyebrow">ANYGUESSR / PLAY</p>
+          <h1>Core Quiz Gameplay</h1>
+          <p className="quiz-subtitle">Map {mapId}</p>
+        </header>
 
-      <p>Map: {mapId}</p>
+        {!complete ? (
+          <>
+            <section className="quiz-board-card" aria-label="Current quiz">
+              <div className="quiz-stage-header">
+                <div>
+                  <p className="quiz-stage-label">YOUR CHALLENGE</p>
+                  <p>Click the region you think is correct.</p>
+                </div>
+                {sending && (
+                  <span className="quiz-submitting" role="status">
+                    Checking answer…
+                  </span>
+                )}
+              </div>
 
-      {!lastResult?.quizComplete && (
-        <>
-          <p>
-            Click the region you think is correct.
-          </p>
+              <div className="quiz-map-panel">
+                <QuizMap
+                  key={mapId}
+                  mapId={mapId}
+                  targetRegionId={currentTarget}
+                  disabled={sending}
+                  onRegionClick={(regionId) => {
+                    void handleGuess(regionId);
+                  }}
+                />
+              </div>
+            </section>
 
-          {/* Display the selected map and its clickable polygons. */}
-          <QuizMap
-	    key={mapId}
-            mapId={mapId}
-	    targetRegionId={currentTarget}
-            disabled={sending}
-            onRegionClick={(regionId) => {
-              void handleGuess(regionId);
-            }}
-          />
-        </>
-      )}
+            {message && (
+              <div
+                className={`quiz-feedback ${
+                  lastResult?.correctionRequired
+                    ? "quiz-feedback--warning"
+                    : "quiz-feedback--success"
+                }`}
+                role="status"
+                aria-live="polite"
+              >
+                {message}
+              </div>
+            )}
 
-      {message && (
-        <h2
-          aria-live="polite"
-          style={{
-            marginTop: "2rem",
-          }}
-        >
-          {message}
-        </h2>
-      )}
+            <div className="quiz-score-grid" aria-label="Current quiz score">
+              <div className="quiz-score-tile">
+                <span>Correct answers</span>
+                <strong>{correctAnswers}</strong>
+              </div>
+              <div className="quiz-score-tile">
+                <span>Answered targets</span>
+                <strong>{answeredTargets}</strong>
+              </div>
+              <div className="quiz-score-tile">
+                <span>Accuracy</span>
+                <strong>{accuracy.toFixed(1)}%</strong>
+              </div>
+            </div>
+          </>
+        ) : (
+          <section className="quiz-complete-card" aria-label="Quiz results">
+            <div className="quiz-completion-mark" aria-hidden="true">✓</div>
+            <p className="quiz-eyebrow">SESSION FINISHED</p>
+            <h2>Quiz complete!</h2>
+            <p className="quiz-complete-description">
+              You finished the map. Here's how you did.
+            </p>
 
-      {lastResult && (
-        <div>
-          <p>
-            Correct answers:{" "}
-            {lastResult.correctAnswers}
-          </p>
+            <p className="quiz-final-accuracy">{accuracy.toFixed(1)}%</p>
+            <p className="quiz-final-caption">Final accuracy</p>
 
-          <p>
-            Answered targets:{" "}
-            {lastResult.answeredTargets}
-          </p>
+            <div className="quiz-score-grid" aria-label="Final quiz score">
+              <div className="quiz-score-tile">
+                <span>Correct answers</span>
+                <strong>{correctAnswers}</strong>
+              </div>
+              <div className="quiz-score-tile">
+                <span>Answered targets</span>
+                <strong>{answeredTargets}</strong>
+              </div>
+              <div className="quiz-score-tile">
+                <span>Accuracy</span>
+                <strong>{accuracy.toFixed(1)}%</strong>
+              </div>
+            </div>
 
-          <p>
-            Accuracy:{" "}
-            {lastResult.accuracy.toFixed(1)}%
-          </p>
+            {sessionStorage.getItem("userId") !== null && (
+              <GameResult sessionId={sessionId} />
+            )}
 
-          {lastResult.quizComplete && (
-            <>
-              {sessionStorage.getItem("userId") !== null && (
-                <GameResult sessionId={sessionId} />
-              )}
-
-              <button onClick={playAgain}>
-                Play again
-              </button>
-
+            <div className="quiz-actions">
               <button
-                onClick={() =>
-                  navigate("/mapselector")
-                }
+                type="button"
+                className="quiz-action quiz-action--primary"
+                disabled={restarting}
+                onClick={() => void playAgain()}
+              >
+                {restarting ? "Starting…" : "Play again"}
+              </button>
+              <button
+                type="button"
+                className="quiz-action quiz-action--secondary"
+                onClick={() => navigate("/mapselector")}
               >
                 Choose another map
               </button>
-            </>
-          )}
-        </div>
-      )}
+            </div>
+          </section>
+        )}
 
-      {sending && (
-        <p>Submitting...</p>
-      )}
-
-      {error && (
-        <p role="alert">{error}</p>
-      )}
-    </div>
+        {error && (
+          <p className="quiz-error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </main>
   );
 }
 
-/**
- * Remounts the quiz when the navigation entry changes
- * so that a new session starts with fresh component state.
- */
+/** Remounts the quiz when navigation starts a new gameplay session. */
 function QuizPage() {
   const location = useLocation();
-
   return <Quiz key={location.key} />;
 }
 
