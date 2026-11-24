@@ -8,7 +8,9 @@ import com.anyguessr.anyguessrbackend.identity.domain.UserRepository;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+/**
+ * Connects authenticated Cognito users to local user accounts.
+ */
 @Service
 public class CognitoUserProvisioningService {
 
@@ -25,7 +27,13 @@ public class CognitoUserProvisioningService {
         this.userRepository = userRepository;
         
     }
-
+    /**
+     * Finds the local user linked to a Cognito identity. If no link exists,
+     * links an existing user with the same email or creates a new user.
+     *
+     * @param cognitoUser the authenticated Cognito user
+     * @return the local user's ID
+     */
     @Transactional
     public Long findOrCreateUser(OidcUser cognitoUser) {
         String provider = "cognito";

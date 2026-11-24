@@ -5,7 +5,10 @@ import jakarta.persistence.Embeddable;
 
 import java.io.Serializable;
 import java.util.Objects;
-
+/**
+ * Identifies an external login using the provider and the user's ID
+ * at that provider. Used as the composite key for an external login.
+ */
 @Embeddable 
 public class ExternalLoginId implements Serializable{
     @Column(nullable = false, length = 20)

@@ -4,7 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-
+/**
+ * Represents a link between an external provider's identity
+ * and a local user account in the external_login table.
+ */
 @Entity
 @Table(name = "external_login")
 public class ExternalLoginEntity {

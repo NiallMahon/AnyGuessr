@@ -7,7 +7,10 @@ import com.anyguessr.anyguessrbackend.identity.infrastructure.persistence.entity
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-
+/**
+ * Stores and retrieves external login links using Spring Data JPA.
+ * Converts between external login domain objects and database entities.
+ */
 @Repository 
 @org.springframework.context.annotation.Profile("database")
 

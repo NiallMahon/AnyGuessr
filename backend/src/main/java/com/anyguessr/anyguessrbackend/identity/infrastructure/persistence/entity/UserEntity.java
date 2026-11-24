@@ -11,7 +11,10 @@ import com.anyguessr.anyguessrbackend.identity.domain.User;
 import java.time.LocalDateTime;
 import com.anyguessr.anyguessrbackend.identity.domain.User;
 import jakarta.persistence.Column;
-
+/**
+ * Represents a user account stored in the users database table.
+ * Provides conversion between the database entity and the User domain object.
+ */
 @Entity
 @Table(name = "users")
 public class UserEntity {
@@ -108,7 +111,11 @@ public class UserEntity {
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
     }
-
+    /**
+     * Converts this entity to a user domain object.
+     *
+     * @return a user containing this entity's account details
+     */
     public User toDomain() {
     return new User(
             userId,
@@ -118,7 +125,12 @@ public class UserEntity {
             location
     );
 }
-
+/**
+ * Creates an entity from a user domain object.
+ *
+ * @param user the user to convert
+ * @return an entity containing the user's account details
+ */
 public static UserEntity fromDomain(User user) {
     UserEntity entity = new UserEntity();
     entity.userId = user.id();

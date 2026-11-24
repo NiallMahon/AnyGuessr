@@ -8,7 +8,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-
+/**
+ * Stores and retrieves users from the database using Spring Data JPA.
+ * Converts between user domain objects and database entities.
+ */
 @Repository
 @org.springframework.context.annotation.Profile("!memory")
 public class JpaUserRepository implements UserRepository {
