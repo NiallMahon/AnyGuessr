@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Handles social operations for friends, friend requests, player searches, and blocking.
+ */
 @Service
 public class FriendService {
 
@@ -43,6 +46,9 @@ public class FriendService {
     private final BlockedUserRepository blockedUserRepository;
     private final UserLookupService userLookupService;
 
+    /**
+     * Creates a {@code FriendService} with its required repositories and user lookup service.
+     */
     public FriendService(
             FriendLinkRepository friendLinkRepository,
             BlockedUserRepository blockedUserRepository,
@@ -53,6 +59,9 @@ public class FriendService {
         this.userLookupService = userLookupService;
     }
 
+    /**
+     * Returns all accepted friends for the given user.
+     */
     public List<UserSummary> getFriendsByUserId(Long userId) {
         List<Long> friendIds = friendLinkRepository.findAllByUserIdAndStatus(userId, Status.ACCEPTED.name()).stream()
                 .map(link -> link.getUserIdA().equals(userId) ? link.getUserIdB() : link.getUserIdA())
@@ -60,6 +69,9 @@ public class FriendService {
         return userLookupService.findAllByIds(friendIds);
     }
 
+    /**
+     * Returns all users blocked by the given user.
+     */
     public List<UserSummary> getBlockedUsers(Long userId) {
         List<Long> blockedIds = blockedUserRepository.findByIdBlockerId(userId).stream()
                 .map(BlockedUser::getBlockedId)
@@ -67,6 +79,9 @@ public class FriendService {
         return userLookupService.findAllByIds(blockedIds);
     }
 
+    /**
+     * Returns incoming pending friend requests for the given user.
+     */
     public List<RequestView> getIncomingPendingRequests(Long userId) {
         List<FriendLink> pending = friendLinkRepository.findIncomingPending(userId);
         List<Long> otherIds = pending.stream()
@@ -84,6 +99,9 @@ public class FriendService {
                 .toList();
     }
 
+    /**
+     * Returns outgoing pending friend requests sent by the given user.
+     */
     public List<RequestView> getOutgoingPendingRequests(Long userId) {
         List<FriendLink> pending = friendLinkRepository.findOutgoingPending(userId);
         List<Long> otherIds = pending.stream()
@@ -101,6 +119,9 @@ public class FriendService {
                 .toList();
     }
 
+    /**
+     * Searches players by username and annotates each result with the current user's relationship status.
+     */
     public List<UserSearchResult> searchPlayers(Long currentUserId, String query) {
         List<UserSummary> matches = userLookupService.searchByUsername(query);
 
@@ -140,6 +161,9 @@ public class FriendService {
                 .toList();
     }
 
+    /**
+     * Sends a friend request to {@code targetUsername} or accepts an existing incoming request from them.
+     */
     @Transactional
     public FriendLink sendFriendRequest(Long requesterUserId, String targetUsername) {
         if (requesterUserId == null) {
@@ -191,6 +215,9 @@ public class FriendService {
         );
     }
 
+    /**
+     * Accepts a pending friend request sent by {@code requesterUserId}.
+     */
     @Transactional
     public void acceptRequest(Long actingUserId, Long requesterUserId) {
         long minId = Math.min(actingUserId, requesterUserId);
@@ -210,6 +237,9 @@ public class FriendService {
         friendLinkRepository.save(link);
     }
 
+    /**
+     * Declines a pending friend request sent by {@code requesterUserId}.
+     */
     @Transactional
     public void declineRequest(Long actingUserId, Long requesterUserId) {
         long minId = Math.min(actingUserId, requesterUserId);
@@ -229,6 +259,9 @@ public class FriendService {
         friendLinkRepository.save(link);
     }
 
+    /**
+     * Cancels a pending outgoing friend request sent by {@code actingUserId}.
+     */
     @Transactional
     public void cancelOutgoingRequest(Long actingUserId, Long recipientUserId) {
         long minId = Math.min(actingUserId, recipientUserId);
@@ -248,6 +281,9 @@ public class FriendService {
         friendLinkRepository.save(link);
     }
 
+    /**
+     * Removes an existing friend link between two users if one exists.
+     */
     @Transactional
     public void removeMutualFriend(Long userId, Long friendUserId) {
         long minId = Math.min(userId, friendUserId);
@@ -255,6 +291,9 @@ public class FriendService {
         friendLinkRepository.findBetween(minId, maxId).ifPresent(friendLinkRepository::delete);
     }
 
+    /**
+     * Blocks {@code blockedUserId} for {@code blockerUserId} and removes any existing friendship.
+     */
     @Transactional
     public void blockUser(Long blockerUserId, Long blockedUserId) {
         if (blockerUserId.equals(blockedUserId)) {
@@ -268,11 +307,17 @@ public class FriendService {
         }
     }
 
+    /**
+     * Unblocks {@code blockedUserId} for {@code blockerUserId}.
+     */
     @Transactional
     public void unblockUser(Long blockerUserId, Long blockedUserId) {
         blockedUserRepository.deleteByIdBlockerIdAndIdBlockedId(blockerUserId, blockedUserId);
     }
 
+    /**
+     * Builds a {@link RequestView} for a pending request using cached user summaries.
+     */
     private RequestView toRequestView(Long otherUserId, String status, Map<Long, UserSummary> usersById) {
         UserSummary other = usersById.get(otherUserId);
         String username = other != null ? other.username() : String.valueOf(otherUserId);

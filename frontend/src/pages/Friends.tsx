@@ -45,6 +45,7 @@ interface UsernameOption {
 const API_BASE = "http://localhost:8080/api/friends";
 const PROFILE_ME_URL = "http://localhost:8080/profile/me";
 
+/** Unwraps a nested `user` object if present, otherwise returns the record object. */
 function unwrapUserRecord(raw: unknown): Record<string, unknown> | null {
     if (!raw || typeof raw !== "object") return null;
     const obj = raw as Record<string, unknown>;
@@ -54,6 +55,7 @@ function unwrapUserRecord(raw: unknown): Record<string, unknown> | null {
     return obj;
 }
 
+/** Converts a number or numeric string into a finite number, or returns null. */
 function toFiniteNumber(val: unknown): number | null {
     if (typeof val === "number" && Number.isFinite(val)) return val;
     if (typeof val === "string" && val.trim() !== "" && Number.isFinite(Number(val))) {
@@ -62,12 +64,14 @@ function toFiniteNumber(val: unknown): number | null {
     return null;
 }
 
+/** Extracts a user ID from a user or wrapped user record, with a fallback. */
 function extractUserId(raw: unknown, fallback = 0): number {
     const userObj = unwrapUserRecord(raw);
     const candidate = userObj?.userId ?? userObj?.id ?? (raw as Record<string, unknown> | null)?.id;
     return toFiniteNumber(candidate) ?? fallback;
 }
 
+/** Extracts the best available username/handle string from a user record. */
 function extractUsername(raw: unknown): string {
     const userObj = unwrapUserRecord(raw);
     if (!userObj) return "";
@@ -80,6 +84,7 @@ function extractUsername(raw: unknown): string {
     return "";
 }
 
+/** Extracts a display name for a user record, falling back to the provided default. */
 function extractDisplayName(raw: unknown, fallback: string): string {
     const userObj = unwrapUserRecord(raw);
     if (!userObj) return fallback;
@@ -92,6 +97,7 @@ function extractDisplayName(raw: unknown, fallback: string): string {
     return fallback;
 }
 
+/** Extracts the recipient/target user ID from an outgoing request object. */
 function extractRecipientId(req: RequestView): number | null {
     const nestedRecipient = req.recipient ?? req.targetUser ?? req.user ?? null;
     const nestedId =
@@ -113,6 +119,7 @@ function extractRecipientId(req: RequestView): number | null {
     );
 }
 
+/** Extracts a readable username/label for a friend request item. */
 function extractRequestLabel(req: RequestView, fallbackId: number | string): string {
     const nestedRecipient = req.recipient ?? req.targetUser ?? req.user ?? null;
     const nestedName =
@@ -135,6 +142,7 @@ function extractRequestLabel(req: RequestView, fallbackId: number | string): str
     return `User #${fallbackId}`;
 }
 
+/** Resolves the signed-in user's ID from sessionStorage or the `/profile/me` endpoint. */
 async function resolveSignedInUserId(): Promise<number | null> {
     const storedId = sessionStorage.getItem("userId");
     if (storedId && !Number.isNaN(Number(storedId)) && storedId.trim() !== "") {
@@ -161,12 +169,14 @@ async function resolveSignedInUserId(): Promise<number | null> {
     return null;
 }
 
+/** Returns up to two uppercase initials for an avatar badge. */
 function getInitials(name: string | null | undefined): string {
     const trimmed = typeof name === "string" ? name.trim() : "";
     if (!trimmed) return "?";
     return trimmed.slice(0, 2).toUpperCase();
 }
 
+/** Renders the Friends page with search/add dropdown, friends list, preview, requests, and blocked users. */
 export default function Friends() {
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [authChecking, setAuthChecking] = useState(true);
@@ -205,6 +215,7 @@ export default function Friends() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    /** Fetches friends, incoming/outgoing requests, and blocked users for the active user. */
     const loadAllSocialData = useCallback(async (userId: number) => {
         const opts: RequestInit = { credentials: "include" };
 
@@ -338,6 +349,7 @@ export default function Friends() {
         return Array.from(options.values()).slice(0, 7);
     }, [query, friends, searchResults]);
 
+    /** Selects a dropdown suggestion into the search input and previews if already a friend. */
     function handlePickSuggestion(option: UsernameOption) {
         setQuery(option.username);
         setDropdownOpen(false);
@@ -346,6 +358,7 @@ export default function Friends() {
         }
     }
 
+    /** Sends a friend request to the given username and refreshes social lists. */
     async function sendFriendRequestForUsername(rawUsername: string) {
         if (!currentUserId) return;
         const username = rawUsername.trim();
@@ -366,6 +379,7 @@ export default function Friends() {
         }
     }
 
+    /** Submits the search/add form to preview an existing friend or send a friend request. */
     async function handleFormSubmit(e: React.FormEvent) {
         e.preventDefault();
         const trimmed = query.trim();
@@ -383,6 +397,7 @@ export default function Friends() {
         await sendFriendRequestForUsername(exactMatch ? exactMatch.username : trimmed);
     }
 
+    /** Accepts an incoming friend request from `requesterUserId`. */
     async function handleAcceptRequest(requesterUserId: number) {
         if (!currentUserId) return;
         const res = await fetch(
@@ -392,6 +407,7 @@ export default function Friends() {
         if (res.ok) await loadAllSocialData(currentUserId);
     }
 
+    /** Declines an incoming friend request from `requesterUserId`. */
     async function handleDeclineRequest(requesterUserId: number) {
         if (!currentUserId) return;
         const res = await fetch(
@@ -401,6 +417,7 @@ export default function Friends() {
         if (res.ok) await loadAllSocialData(currentUserId);
     }
 
+    /** Cancels a pending outgoing friend request using supported endpoint variants. */
     async function handleCancelRequest(req: RequestView) {
         if (!currentUserId) return;
         const recipientId = extractRecipientId(req);
@@ -444,6 +461,7 @@ export default function Friends() {
         }
     }
 
+    /** Removes a friend connection for `friendUserId`. */
     async function handleRemoveFriend(e: React.MouseEvent, friendUserId: number) {
         e.stopPropagation();
         if (!currentUserId) return;
@@ -459,6 +477,7 @@ export default function Friends() {
         }
     }
 
+    /** Blocks `targetUserId` and refreshes social lists. */
     async function handleBlockUser(targetUserId: number) {
         if (!currentUserId) return;
         const res = await fetch(`${API_BASE}/block/${currentUserId}/${targetUserId}`, {
@@ -473,6 +492,7 @@ export default function Friends() {
         }
     }
 
+    /** Unblocks `targetUserId` and refreshes social lists. */
     async function handleUnblockUser(targetUserId: number) {
         if (!currentUserId) return;
         const res = await fetch(`${API_BASE}/block/${currentUserId}/${targetUserId}`, {
