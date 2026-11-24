@@ -8,7 +8,6 @@ import Register from "./pages/Register";
 import Friends from "./pages/Friends";
 import Quiz from "./pages/Quiz";
 import './App.css'
-import WorldMap from "./components/Map/WorldMap";
 import MapSelector from "./pages/MapSelector";
 import MapMaker from './pages/MapMaker';
 
@@ -38,7 +37,6 @@ function App() {
           element={
             <div>
               <h1>AnyGuessr</h1>
-              <WorldMap />
             </div>
           }
         />

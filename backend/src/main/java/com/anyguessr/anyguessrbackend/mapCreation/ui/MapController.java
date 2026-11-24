@@ -13,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper; // Spring Boot 4 uses Jackson 3
 
+import org.springframework.core.io.ByteArrayResource;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +33,7 @@ public class MapController {
     public record MapDetail(long mapId, String name, String imageRef, int width, int height, List<RegionDto> regions) {}
 
     private static final long TEMP_OWNER_ID = 1L; // replace once real auth exists
-    private static final Path UPLOAD_DIR = Path.of("uploads");
+    // [old code]  private static final Path UPLOAD_DIR = Path.of("uploads");
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
@@ -44,30 +46,80 @@ public class MapController {
      /* ------------------------------------------------------------ images */
 
     @PostMapping("/images")
-    public Map<String, String> upload(@RequestParam("image") MultipartFile file) throws IOException {
-        String ext = switch (Objects.requireNonNullElse(file.getContentType(), "")) {
-            case "image/png" -> "png";
-            case "image/jpeg" -> "jpg";
-            case "image/webp" -> "webp";
-            default -> throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Only PNG, JPEG or WebP images are allowed");
-        };
-        Files.createDirectories(UPLOAD_DIR);
-        String name = UUID.randomUUID() + "." + ext;
-        file.transferTo(UPLOAD_DIR.resolve(name).toAbsolutePath());
-        return Map.of("imageRef", name);
+public Map<String, String> upload(
+        @RequestParam("image") MultipartFile file
+) throws IOException {
+
+    String contentType = file.getContentType();
+
+    if (contentType == null ||
+            !Set.of("image/png", "image/jpeg", "image/webp").contains(contentType)) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Only PNG, JPEG or WebP images are allowed"
+        );
     }
 
-    // Regex on the path variable blocks "../" tricks.
-    @GetMapping("/images/{name:[A-Za-z0-9_-]+\\.(?:png|jpg|jpeg|webp)}")
-    public ResponseEntity<Resource> image(@PathVariable String name) {
-        Path file = UPLOAD_DIR.resolve(name);
-        if (!Files.exists(file)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        MediaType type = name.endsWith(".png") ? MediaType.IMAGE_PNG
-                : name.endsWith(".webp") ? MediaType.parseMediaType("image/webp")
-                : MediaType.IMAGE_JPEG;
-        return ResponseEntity.ok().contentType(type).body(new FileSystemResource(file));
+    if (file.isEmpty()) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Image cannot be empty"
+        );
     }
+
+    String extension = switch (contentType) {
+        case "image/png" -> ".png";
+        case "image/jpeg" -> ".jpg";
+        case "image/webp" -> ".webp";
+        default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    };
+
+    String imageId = UUID.randomUUID() + extension;
+
+    jdbc.update("""
+            INSERT INTO map_images (image_id, image_data, content_type)
+            VALUES (?, ?, ?)
+            """,
+            imageId,
+            file.getBytes(),
+            contentType
+    );
+
+    return Map.of("imageRef", imageId);
+}
+
+   @GetMapping("/images/{name:[A-Za-z0-9_-]+\\.(?:png|jpg|jpeg|webp)}")
+public ResponseEntity<Resource> image(@PathVariable String name) {
+
+    List<Map<String, Object>> results = jdbc.query(
+            """
+            SELECT image_data, content_type
+            FROM map_images
+            WHERE image_id = ?
+            """,
+            (rs, rowNum) -> {
+                Map<String, Object> result = new HashMap<>();
+                result.put("imageData", rs.getBytes("image_data"));
+                result.put("contentType", rs.getString("content_type"));
+                return result;
+            },
+            name
+    );
+
+    if (results.isEmpty()) {
+        throw new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Image not found"
+        );
+    }
+
+    byte[] imageData = (byte[]) results.get(0).get("imageData");
+    String contentType = (String) results.get(0).get("contentType");
+
+    return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(new ByteArrayResource(imageData));
+}
 
     /* -------------------------------------------------------------- read */
 

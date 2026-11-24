@@ -1,6 +1,5 @@
 const API_BASE: string =
-    (import.meta.env.VITE_API_URL as string | undefined) ??
-    "http://localhost:8080";
+    (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export type Point = {
     x: number;
@@ -31,6 +30,23 @@ export type MapSummary = {
     regionCount: number;
 };
 
+/** A region and its saved polygon coordinates. */
+export type MapRegion = {
+    id: number;
+    name: string;
+    points: Point[];
+};
+
+/** Map details returned by GET /api/maps/{id}. */
+export type MapDetail = {
+    mapId: number;
+    name: string;
+    imageRef: string | null;
+    width: number;
+    height: number;
+    regions: MapRegion[];
+};
+
 /** Fetches all available maps from the backend. */
 export async function getMaps(): Promise<MapSummary[]> {
     const response = await fetch(`${API_BASE}/api/maps`);
@@ -40,6 +56,33 @@ export async function getMaps(): Promise<MapSummary[]> {
     }
 
     return response.json() as Promise<MapSummary[]>;
+}
+
+/** Retrieves a map and its polygons for gameplay. */
+export async function getMapDetails(
+    mapId: number | string
+): Promise<MapDetail> {
+    const response = await fetch(
+        `${API_BASE}/api/maps/${encodeURIComponent(String(mapId))}`
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to load map ${mapId}: HTTP ${response.status}`
+        );
+    }
+
+    if (
+        !response.headers
+            .get("content-type")
+            ?.includes("application/json")
+    ) {
+        throw new Error(
+            "Map endpoint did not return JSON. Check authentication."
+        );
+    }
+
+    return response.json() as Promise<MapDetail>;
 }
 
 /** Builds the URL used to display a map's uploaded image. */
