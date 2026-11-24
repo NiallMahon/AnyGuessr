@@ -168,7 +168,7 @@ public class FriendController {
      * Formats {@link ResponseStatusException} errors into a JSON message payload.
      */
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity> handleStatusException(ResponseStatusException ex) {
+    public ResponseEntity handleStatusException(ResponseStatusException ex) {
         String message = ex.getReason() != null ? ex.getReason() : "Request failed";
         return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", message));
     }

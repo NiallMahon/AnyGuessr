@@ -1,115 +1,144 @@
-package com.anyguessr.anyguessrbackend.social.infrastructure;
+package com.anyguessr.anyguessrbackend.social.domain;
 
-import com.anyguessr.anyguessrbackend.social.app.UserLookupService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import java.util.List;
-import java.util.Optional;
-import org.springframework.stereotype.Service;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import java.io.Serializable;
+import java.time.Instant;
+import java.util.Objects;
 
-/**
- * Database-backed implementation of {@link UserLookupService} querying user records via JPA native SQL.
- */
-@Service
-public class DbUserLookupService implements UserLookupService {
+@Entity
+@Table(name = "friend_links")
+public class FriendLink {
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    private static final String BASE_SELECT =
-            "SELECT u.user_id, u.username, " +
-                    "(SELECT COUNT(*) FROM user_games g WHERE g.user_id = u.user_id) AS games_played " +
-                    "FROM users u WHERE u.deleted_at IS NULL ";
-
-    /**
-     * Finds an active user summary by ID.
-     */
-    @Override
-    public Optional<UserSummary> findById(Long userId) {
-        if (userId == null) {
-            return Optional.empty();
-        }
-        List<?> rows = entityManager.createNativeQuery(BASE_SELECT + "AND u.user_id = :userId")
-                .setParameter("userId", userId)
-                .getResultList();
-        return rows.stream().findFirst().map(this::mapRow);
+    public enum Status {
+        PENDING,
+        ACCEPTED,
+        DECLINED,
+        CANCELLED
     }
 
-    /**
-     * Finds an active user summary by username, ignoring case.
-     */
-    @Override
-    public Optional<UserSummary> findByUsernameIgnoreCase(String username) {
-        if (username == null || username.isBlank()) {
-            return Optional.empty();
+    public static class FriendLinkId implements Serializable {
+
+        @Column(name = "user_id_a", nullable = false)
+        private Long userIdA;
+
+        @Column(name = "user_id_b", nullable = false)
+        private Long userIdB;
+
+        public FriendLinkId() {}
+
+        public FriendLinkId(Long userIdA, Long userIdB) {
+            this.userIdA = userIdA;
+            this.userIdB = userIdB;
         }
-        List<?> rows = entityManager.createNativeQuery(BASE_SELECT + "AND LOWER(u.username) = LOWER(:username)")
-                .setParameter("username", username.trim())
-                .getResultList();
-        return rows.stream().findFirst().map(this::mapRow);
+
+        public Long getUserIdA() {
+            return userIdA;
+        }
+
+        public void setUserIdA(Long userIdA) {
+            this.userIdA = userIdA;
+        }
+
+        public Long getUserIdB() {
+            return userIdB;
+        }
+
+        public void setUserIdB(Long userIdB) {
+            this.userIdB = userIdB;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof FriendLinkId that)) {
+                return false;
+            }
+            return Objects.equals(userIdA, that.userIdA) && Objects.equals(userIdB, that.userIdB);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(userIdA, userIdB);
+        }
     }
 
-    /**
-     * Finds active user summaries matching any of the given user IDs.
-     */
-    @Override
-    public List<UserSummary> findAllByIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
-        List<?> rows = entityManager.createNativeQuery(BASE_SELECT + "AND u.user_id IN (:userIds)")
-                .setParameter("userIds", userIds)
-                .getResultList();
-        return rows.stream().map(this::mapRow).toList();
+    @EmbeddedId
+    private FriendLinkId id;
+
+    @Column(name = "requested_by", nullable = false)
+    private Long requestedBy;
+
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    public FriendLink() {}
+
+    public FriendLink(Long userIdA, Long userIdB, Long requestedBy, Status status) {
+        this.id = new FriendLinkId(userIdA, userIdB);
+        this.requestedBy = requestedBy;
+        this.status = status != null ? status.name() : null;
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
-    /**
-     * Searches active users whose usernames contain the query string, up to 15 results.
-     */
-    @Override
-    public List<UserSummary> searchByUsername(String query) {
-        if (query == null || query.isBlank()) {
-            return List.of();
-        }
-        String pattern = "%" + query.trim().toLowerCase() + "%";
-        List<?> rows = entityManager.createNativeQuery(
-                        BASE_SELECT + "AND LOWER(u.username) LIKE :pattern ORDER BY u.username ASC LIMIT 15"
-                )
-                .setParameter("pattern", pattern)
-                .getResultList();
-        return rows.stream().map(this::mapRow).toList();
+    public FriendLinkId getId() {
+        return id;
     }
 
-    /**
-     * Maps a native query result row into a {@link UserSummary}.
-     */
-    private UserSummary mapRow(Object raw) {
-        Object[] cols = (Object[]) raw;
-        Long userId = ((Number) cols[0]).longValue();
-        String username = String.valueOf(cols[1]);
-        int gamesPlayed = cols[2] instanceof Number n ? n.intValue() : 0;
-        String initials = buildInitials(username);
-        return new UserSummary(
-                userId,
-                username,
-                username,
-                "Unknown",
-                initials,
-                gamesPlayed,
-                "Online",
-                "duel-" + userId
-        );
+    public void setId(FriendLinkId id) {
+        this.id = id;
     }
 
-    /**
-     * Builds up to two uppercase initials from a username.
-     */
-    private String buildInitials(String username) {
-        String clean = username.trim();
-        String[] parts = clean.split("[._\\s-]+");
-        if (parts.length >= 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
-            return ("" + parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
-        }
-        return clean.substring(0, Math.min(2, clean.length())).toUpperCase();
+    public Long getUserIdA() {
+        return id != null ? id.getUserIdA() : null;
+    }
+
+    public Long getUserIdB() {
+        return id != null ? id.getUserIdB() : null;
+    }
+
+    public Long getRequestedBy() {
+        return requestedBy;
+    }
+
+    public void setRequestedBy(Long requestedBy) {
+        this.requestedBy = requestedBy;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+        this.updatedAt = Instant.now();
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
