@@ -6,6 +6,7 @@ import com.anyguessr.anyguessrbackend.social.domain.FriendLink;
 import com.anyguessr.anyguessrbackend.social.domain.FriendLink.Status;
 import com.anyguessr.anyguessrbackend.social.infrastructure.repository.BlockedUserRepository;
 import com.anyguessr.anyguessrbackend.social.infrastructure.repository.FriendLinkRepository;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,14 +14,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/**
- * Handles social operations for friends, friend requests, player searches, and blocking.
- */
 @Service
 public class FriendService {
 
@@ -46,9 +45,6 @@ public class FriendService {
     private final BlockedUserRepository blockedUserRepository;
     private final UserLookupService userLookupService;
 
-    /**
-     * Creates a {@code FriendService} with its required repositories and user lookup service.
-     */
     public FriendService(
             FriendLinkRepository friendLinkRepository,
             BlockedUserRepository blockedUserRepository,
@@ -60,39 +56,63 @@ public class FriendService {
     }
 
     /**
-     * Returns all accepted friends for the given user.
+     * Returns all accepted friends for a user.
      */
     public List<UserSummary> getFriendsByUserId(Long userId) {
-        List<Long> friendIds = friendLinkRepository.findAllByUserIdAndStatus(userId, Status.ACCEPTED.name()).stream()
-                .map(link -> link.getUserIdA().equals(userId) ? link.getUserIdB() : link.getUserIdA())
+
+        List<Long> friendIds = friendLinkRepository
+                .findAllByUserIdAndStatus(userId, Status.ACCEPTED.name())
+                .stream()
+                .map(link -> link.getUserIdA().equals(userId)
+                        ? link.getUserIdB()
+                        : link.getUserIdA())
                 .toList();
+
         return userLookupService.findAllByIds(friendIds);
     }
 
     /**
-     * Returns all users blocked by the given user.
+     * Returns users blocked by the given user.
      */
     public List<UserSummary> getBlockedUsers(Long userId) {
-        List<Long> blockedIds = blockedUserRepository.findByIdBlockerId(userId).stream()
+
+        List<Long> blockedIds = blockedUserRepository
+                .findByIdBlockerId(userId)
+                .stream()
                 .map(BlockedUser::getBlockedId)
                 .toList();
+
         return userLookupService.findAllByIds(blockedIds);
     }
 
     /**
-     * Returns incoming pending friend requests for the given user.
+     * Returns incoming pending friend requests.
      */
     public List<RequestView> getIncomingPendingRequests(Long userId) {
-        List<FriendLink> pending = friendLinkRepository.findIncomingPending(userId);
+
+        List<FriendLink> pending =
+                friendLinkRepository.findIncomingPending(userId);
+
         List<Long> otherIds = pending.stream()
-                .map(link -> link.getUserIdA().equals(userId) ? link.getUserIdB() : link.getUserIdA())
+                .map(link -> link.getUserIdA().equals(userId)
+                        ? link.getUserIdB()
+                        : link.getUserIdA())
                 .distinct()
                 .toList();
-        Map<Long, UserSummary> usersById = userLookupService.findAllByIds(otherIds).stream()
-                .collect(Collectors.toMap(UserSummary::userId, Function.identity()));
+
+        Map<Long, UserSummary> usersById =
+                userLookupService.findAllByIds(otherIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                UserSummary::userId,
+                                Function.identity()
+                        ));
+
         return pending.stream()
                 .map(link -> toRequestView(
-                        link.getUserIdA().equals(userId) ? link.getUserIdB() : link.getUserIdA(),
+                        link.getUserIdA().equals(userId)
+                                ? link.getUserIdB()
+                                : link.getUserIdA(),
                         link.getStatus(),
                         usersById
                 ))
@@ -100,19 +120,33 @@ public class FriendService {
     }
 
     /**
-     * Returns outgoing pending friend requests sent by the given user.
+     * Returns outgoing pending friend requests.
      */
     public List<RequestView> getOutgoingPendingRequests(Long userId) {
-        List<FriendLink> pending = friendLinkRepository.findOutgoingPending(userId);
+
+        List<FriendLink> pending =
+                friendLinkRepository.findOutgoingPending(userId);
+
         List<Long> otherIds = pending.stream()
-                .map(link -> link.getUserIdA().equals(userId) ? link.getUserIdB() : link.getUserIdA())
+                .map(link -> link.getUserIdA().equals(userId)
+                        ? link.getUserIdB()
+                        : link.getUserIdA())
                 .distinct()
                 .toList();
-        Map<Long, UserSummary> usersById = userLookupService.findAllByIds(otherIds).stream()
-                .collect(Collectors.toMap(UserSummary::userId, Function.identity()));
+
+        Map<Long, UserSummary> usersById =
+                userLookupService.findAllByIds(otherIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                UserSummary::userId,
+                                Function.identity()
+                        ));
+
         return pending.stream()
                 .map(link -> toRequestView(
-                        link.getUserIdA().equals(userId) ? link.getUserIdB() : link.getUserIdA(),
+                        link.getUserIdA().equals(userId)
+                                ? link.getUserIdB()
+                                : link.getUserIdA(),
                         link.getStatus(),
                         usersById
                 ))
@@ -120,25 +154,47 @@ public class FriendService {
     }
 
     /**
-     * Searches players by username and annotates each result with the current user's relationship status.
+     * Searches players and returns their relationship with the current user.
      */
-    public List<UserSearchResult> searchPlayers(Long currentUserId, String query) {
-        List<UserSummary> matches = userLookupService.searchByUsername(query);
+    public List<UserSearchResult> searchPlayers(
+            Long currentUserId,
+            String query
+    ) {
 
-        Set<Long> friendIds = friendLinkRepository.findAllByUserIdAndStatus(currentUserId, Status.ACCEPTED.name()).stream()
-                .map(link -> link.getUserIdA().equals(currentUserId) ? link.getUserIdB() : link.getUserIdA())
+        List<UserSummary> matches =
+                userLookupService.searchByUsername(query);
+
+        Set<Long> friendIds = friendLinkRepository
+                .findAllByUserIdAndStatus(
+                        currentUserId,
+                        Status.ACCEPTED.name()
+                )
+                .stream()
+                .map(link -> link.getUserIdA().equals(currentUserId)
+                        ? link.getUserIdB()
+                        : link.getUserIdA())
                 .collect(Collectors.toSet());
 
-        Set<Long> outgoingIds = friendLinkRepository.findOutgoingPending(currentUserId).stream()
-                .map(link -> link.getUserIdA().equals(currentUserId) ? link.getUserIdB() : link.getUserIdA())
+        Set<Long> outgoingIds = friendLinkRepository
+                .findOutgoingPending(currentUserId)
+                .stream()
+                .map(link -> link.getUserIdA().equals(currentUserId)
+                        ? link.getUserIdB()
+                        : link.getUserIdA())
                 .collect(Collectors.toSet());
 
-        Set<Long> incomingIds = friendLinkRepository.findIncomingPending(currentUserId).stream()
-                .map(link -> link.getUserIdA().equals(currentUserId) ? link.getUserIdB() : link.getUserIdA())
+        Set<Long> incomingIds = friendLinkRepository
+                .findIncomingPending(currentUserId)
+                .stream()
+                .map(link -> link.getUserIdA().equals(currentUserId)
+                        ? link.getUserIdB()
+                        : link.getUserIdA())
                 .collect(Collectors.toSet());
 
         Set<Long> blockedIds = new HashSet<>(
-                blockedUserRepository.findByIdBlockerId(currentUserId).stream()
+                blockedUserRepository
+                        .findByIdBlockerId(currentUserId)
+                        .stream()
                         .map(BlockedUser::getBlockedId)
                         .toList()
         );
@@ -146,185 +202,346 @@ public class FriendService {
         return matches.stream()
                 .filter(u -> !u.userId().equals(currentUserId))
                 .filter(u -> !blockedIds.contains(u.userId()))
-                .filter(u -> !blockedUserRepository.existsByIdBlockerIdAndIdBlockedId(u.userId(), currentUserId))
+                .filter(u -> !blockedUserRepository
+                        .existsByIdBlockerIdAndIdBlockedId(
+                                u.userId(),
+                                currentUserId
+                        ))
                 .map(u -> {
-                    String rel = "NONE";
+
+                    String relationship = "NONE";
+
                     if (friendIds.contains(u.userId())) {
-                        rel = "FRIEND";
+                        relationship = "FRIEND";
                     } else if (outgoingIds.contains(u.userId())) {
-                        rel = "OUTGOING_PENDING";
+                        relationship = "OUTGOING_PENDING";
                     } else if (incomingIds.contains(u.userId())) {
-                        rel = "INCOMING_PENDING";
+                        relationship = "INCOMING_PENDING";
                     }
-                    return new UserSearchResult(u, rel);
+
+                    return new UserSearchResult(u, relationship);
                 })
                 .toList();
     }
 
     /**
-     * Sends a friend request to {@code targetUsername} or accepts an existing incoming request from them.
+     * Sends a friend request or accepts an existing incoming request.
      */
     @Transactional
-    public FriendLink sendFriendRequest(Long requesterUserId, String targetUsername) {
+    public FriendLink sendFriendRequest(
+            Long requesterUserId,
+            String targetUsername
+    ) {
+
         if (requesterUserId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Requester user ID is required");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Requester user ID is required"
+            );
         }
+
         if (targetUsername == null || targetUsername.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target username is required");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Target username is required"
+            );
         }
 
-        UserSummary requester = userLookupService.findById(requesterUserId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Current user not found"));
+        UserSummary requester = userLookupService
+                .findById(requesterUserId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Current user not found"
+                ));
 
-        UserSummary recipient = userLookupService.findByUsernameIgnoreCase(targetUsername.trim())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No user found with that username"));
+        UserSummary recipient = userLookupService
+                .findByUsernameIgnoreCase(targetUsername.trim())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No user found with that username"
+                ));
 
         if (requester.userId().equals(recipient.userId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot send a friend request to yourself");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "You cannot send a friend request to yourself"
+            );
         }
 
-        if (blockedUserRepository.existsByIdBlockerIdAndIdBlockedId(requester.userId(), recipient.userId())
-                || blockedUserRepository.existsByIdBlockerIdAndIdBlockedId(recipient.userId(), requester.userId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot send a friend request to this user");
+        if (blockedUserRepository
+                .existsByIdBlockerIdAndIdBlockedId(
+                        requester.userId(),
+                        recipient.userId()
+                )
+                || blockedUserRepository
+                .existsByIdBlockerIdAndIdBlockedId(
+                        recipient.userId(),
+                        requester.userId()
+                )) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Cannot send a friend request to this user"
+            );
         }
 
-        long minId = Math.min(requester.userId(), recipient.userId());
-        long maxId = Math.max(requester.userId(), recipient.userId());
+        long minId = Math.min(
+                requester.userId(),
+                recipient.userId()
+        );
 
-        Optional<FriendLink> existingOpt = friendLinkRepository.findBetween(minId, maxId);
+        long maxId = Math.max(
+                requester.userId(),
+                recipient.userId()
+        );
+
+        Optional<FriendLink> existingOpt =
+                friendLinkRepository.findBetween(minId, maxId);
+
         if (existingOpt.isPresent()) {
+
             FriendLink existing = existingOpt.get();
-            Status currentStatus = Status.valueOf(existing.getStatus());
+
+            Status currentStatus =
+                    Status.valueOf(existing.getStatus());
+
             if (currentStatus == Status.ACCEPTED) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "You are already friends with this user");
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "You are already friends with this user"
+                );
             }
+
             if (currentStatus == Status.PENDING) {
+
                 if (requester.userId().equals(existing.getRequestedBy())) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Friend request already pending");
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Friend request already pending"
+                    );
                 }
+
                 existing.setStatus(Status.ACCEPTED.name());
+
                 return friendLinkRepository.save(existing);
             }
+
             existing.setRequestedBy(requester.userId());
             existing.setStatus(Status.PENDING.name());
+
             return friendLinkRepository.save(existing);
         }
 
+        // IMPORTANT:
+        // Always store user IDs in ascending order.
+        // This matches FriendLinkRepository.findBetween().
+
         return friendLinkRepository.save(
-                new FriendLink(requester.userId(), recipient.userId(), requester.userId(), Status.PENDING)
+                new FriendLink(
+                        minId,
+                        maxId,
+                        requester.userId(),
+                        Status.PENDING
+                )
         );
     }
 
     /**
-     * Accepts a pending friend request sent by {@code requesterUserId}.
+     * Accepts an incoming friend request.
      */
     @Transactional
-    public void acceptRequest(Long actingUserId, Long requesterUserId) {
+    public void acceptRequest(
+            Long actingUserId,
+            Long requesterUserId
+    ) {
+
         long minId = Math.min(actingUserId, requesterUserId);
         long maxId = Math.max(actingUserId, requesterUserId);
 
-        FriendLink link = friendLinkRepository.findBetween(minId, maxId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend request not found"));
+        FriendLink link = friendLinkRepository
+                .findBetween(minId, maxId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Friend request not found"
+                ));
 
         if (!Status.PENDING.name().equals(link.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Request is no longer pending");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Request is no longer pending"
+            );
         }
+
         if (actingUserId.equals(link.getRequestedBy())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the recipient can accept this request");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the recipient can accept this request"
+            );
         }
 
         link.setStatus(Status.ACCEPTED.name());
+
         friendLinkRepository.save(link);
     }
 
     /**
-     * Declines a pending friend request sent by {@code requesterUserId}.
+     * Declines an incoming friend request.
      */
     @Transactional
-    public void declineRequest(Long actingUserId, Long requesterUserId) {
+    public void declineRequest(
+            Long actingUserId,
+            Long requesterUserId
+    ) {
+
         long minId = Math.min(actingUserId, requesterUserId);
         long maxId = Math.max(actingUserId, requesterUserId);
 
-        FriendLink link = friendLinkRepository.findBetween(minId, maxId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend request not found"));
+        FriendLink link = friendLinkRepository
+                .findBetween(minId, maxId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Friend request not found"
+                ));
 
         if (!Status.PENDING.name().equals(link.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Request is no longer pending");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Request is no longer pending"
+            );
         }
+
         if (actingUserId.equals(link.getRequestedBy())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the recipient can decline this request");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the recipient can decline this request"
+            );
         }
 
         link.setStatus(Status.DECLINED.name());
+
         friendLinkRepository.save(link);
     }
 
     /**
-     * Cancels a pending outgoing friend request sent by {@code actingUserId}.
+     * Cancels an outgoing friend request.
      */
     @Transactional
-    public void cancelOutgoingRequest(Long actingUserId, Long recipientUserId) {
+    public void cancelOutgoingRequest(
+            Long actingUserId,
+            Long recipientUserId
+    ) {
+
         long minId = Math.min(actingUserId, recipientUserId);
         long maxId = Math.max(actingUserId, recipientUserId);
 
-        FriendLink link = friendLinkRepository.findBetween(minId, maxId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Friend request not found"));
+        FriendLink link = friendLinkRepository
+                .findBetween(minId, maxId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Friend request not found"
+                ));
 
         if (!Status.PENDING.name().equals(link.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Request is no longer pending");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Request is no longer pending"
+            );
         }
+
         if (!actingUserId.equals(link.getRequestedBy())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the sender can cancel this request");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the sender can cancel this request"
+            );
         }
 
         link.setStatus(Status.CANCELLED.name());
+
         friendLinkRepository.save(link);
     }
 
     /**
-     * Removes an existing friend link between two users if one exists.
+     * Removes an existing friendship.
      */
     @Transactional
-    public void removeMutualFriend(Long userId, Long friendUserId) {
+    public void removeMutualFriend(
+            Long userId,
+            Long friendUserId
+    ) {
+
         long minId = Math.min(userId, friendUserId);
         long maxId = Math.max(userId, friendUserId);
-        friendLinkRepository.findBetween(minId, maxId).ifPresent(friendLinkRepository::delete);
+
+        friendLinkRepository
+                .findBetween(minId, maxId)
+                .ifPresent(friendLinkRepository::delete);
     }
 
     /**
-     * Blocks {@code blockedUserId} for {@code blockerUserId} and removes any existing friendship.
+     * Blocks a user and removes their friendship.
      */
     @Transactional
-    public void blockUser(Long blockerUserId, Long blockedUserId) {
+    public void blockUser(
+            Long blockerUserId,
+            Long blockedUserId
+    ) {
+
         if (blockerUserId.equals(blockedUserId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot block yourself");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "You cannot block yourself"
+            );
         }
 
         removeMutualFriend(blockerUserId, blockedUserId);
 
-        if (!blockedUserRepository.existsByIdBlockerIdAndIdBlockedId(blockerUserId, blockedUserId)) {
-            blockedUserRepository.save(new BlockedUser(blockerUserId, blockedUserId));
+        if (!blockedUserRepository
+                .existsByIdBlockerIdAndIdBlockedId(
+                        blockerUserId,
+                        blockedUserId
+                )) {
+
+            blockedUserRepository.save(
+                    new BlockedUser(blockerUserId, blockedUserId)
+            );
         }
     }
 
     /**
-     * Unblocks {@code blockedUserId} for {@code blockerUserId}.
+     * Unblocks a user.
      */
     @Transactional
-    public void unblockUser(Long blockerUserId, Long blockedUserId) {
-        blockedUserRepository.deleteByIdBlockerIdAndIdBlockedId(blockerUserId, blockedUserId);
+    public void unblockUser(
+            Long blockerUserId,
+            Long blockedUserId
+    ) {
+
+        blockedUserRepository
+                .deleteByIdBlockerIdAndIdBlockedId(
+                        blockerUserId,
+                        blockedUserId
+                );
     }
 
     /**
-     * Builds a {@link RequestView} for a pending request using cached user summaries.
+     * Creates the request response using the other user's actual details.
      */
-    private RequestView toRequestView(Long otherUserId, String status, Map<Long, UserSummary> usersById) {
+    private RequestView toRequestView(
+            Long otherUserId,
+            String status,
+            Map<Long, UserSummary> usersById
+    ) {
+
         UserSummary other = usersById.get(otherUserId);
-        String username = other != null ? other.username() : String.valueOf(otherUserId);
+
+        String username = other != null
+                ? other.username()
+                : "Unknown";
+
         return new RequestView(
                 otherUserId,
                 username,
-                username,
+                other != null ? other.name() : username,
                 other != null ? other.initials() : "U",
                 status
         );

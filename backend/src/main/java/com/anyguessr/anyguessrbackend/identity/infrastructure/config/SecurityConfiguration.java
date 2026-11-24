@@ -24,10 +24,10 @@ public class SecurityConfiguration {
     public SecurityFilterChain filterChain(HttpSecurity http, CognitoUserProvisioningService provisioningService) throws Exception {
         CognitoLogoutHandler cognitoLogoutHandler = new CognitoLogoutHandler();
 
-        http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+        http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/auth/**"))
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/api/**", "/error").permitAll()
+                .requestMatchers("/", "/api/**", "/auth/**", "/error").permitAll()
                         .anyRequest()
                         .authenticated())
 
@@ -36,8 +36,7 @@ public class SecurityConfiguration {
                             response.sendRedirect("http://localhost:5173/login?error=oauth2");
                         })
                         .successHandler((request, response, authentication) -> {
-                            OidcUser cognitoUser = (OidcUser) authentication.getPrincipal();
-                            
+                            OidcUser cognitoUser = (OidcUser) authentication.getPrincipal();                            
                             Long userId = provisioningService.findOrCreateUser(cognitoUser);
                             
                             request.getSession().setAttribute("userId", userId);
