@@ -1,4 +1,3 @@
-// Unit tests for submitting guesses and announcing them.
 package com.anyguessr.anyguessrbackend.gameplay.application;
 
 import com.anyguessr.anyguessrbackend.gameplay.domain.GuessResult;
@@ -10,11 +9,13 @@ import com.anyguessr.anyguessrbackend.gameplay.infrastructure.InMemoryQuizSessio
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/** Unit tests for submitting guesses and announcing them. */
 class SubmitGuessUseCaseTest {
 
     @Test
@@ -47,7 +48,8 @@ class SubmitGuessUseCaseTest {
                         sessionId,
                         france,
                         null,
-                        null
+                        null,
+                        Instant.now()
                 );
 
         assertTrue(result.correct());
@@ -74,7 +76,8 @@ class SubmitGuessUseCaseTest {
                         new QuizSessionId("missing"),
                         new RegionId("FR"),
                         null,
-                        null
+                        null,
+                        Instant.now()
                 )
         );
     }
@@ -93,19 +96,19 @@ class SubmitGuessUseCaseTest {
         List<String> events = new ArrayList<>();
         SubmitGuessUseCase useCase = new SubmitGuessUseCase(repository, new QuizEventListener() {
             @Override
-            public void guessMade(QuizSessionId id, RegionId target, RegionId selected, boolean correct, Double clickedLat, Double clickedLng) {
+            public void guessMade(QuizSessionId id, RegionId target, RegionId selected, boolean correct, Double clickedLat, Double clickedLng, Instant guessedAt) {
                 events.add(correct + " " + clickedLat);
             }
 
             @Override
-            public void quizFinished(QuizSessionId id, int correctAnswers, int answeredTargets) {
+            public void quizFinished(QuizSessionId id, int correctAnswers, int answeredTargets, Instant finishedAt) {
                 events.add(correctAnswers + "/" + answeredTargets);
             }
         });
 
-        useCase.execute(session.getSessionId(), second, 53.3, -6.2);
-        useCase.execute(session.getSessionId(), first, null, null);
-        useCase.execute(session.getSessionId(), second, null, null);
+        useCase.execute(session.getSessionId(), second, 53.3, -6.2, Instant.now());
+        useCase.execute(session.getSessionId(), first, null, null, Instant.now());
+        useCase.execute(session.getSessionId(), second, null, null, Instant.now());
 
         assertEquals(List.of("false 53.3", "true null", "true null", "1/2"), events);
     }

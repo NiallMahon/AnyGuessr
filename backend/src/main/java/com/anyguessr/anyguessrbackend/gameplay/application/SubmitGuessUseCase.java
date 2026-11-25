@@ -1,4 +1,3 @@
-// Scores a guess on a saved quiz and announces the guess and any final score.
 package com.anyguessr.anyguessrbackend.gameplay.application;
 
 import com.anyguessr.anyguessrbackend.gameplay.domain.GuessResult;
@@ -7,26 +6,15 @@ import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionRepository;
 import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 
-/**
- * Handles the submission and processing of quiz guesses.
- *
- * Retrieves the current quiz session, evaluates the selected
- * region, saves the updated session and publishes gameplay events.
- */
+import java.time.Instant;
 
+/** Handles the submission and processing of quiz guesses. */
 public class SubmitGuessUseCase {
 
     private final QuizSessionRepository quizSessionRepository;
     private final QuizEventListener quizEventListener;
 
-    /**
-     * Creates the use case with its required collaborators.
-     *
-     * @param quizSessionRepository retrieves and saves quiz sessions
-     * @param quizEventListener receives gameplay events
-     * @throws IllegalArgumentException if either dependency is null
-    */
-
+    /** Creates the use case with its required collaborators. */
     public SubmitGuessUseCase(
             QuizSessionRepository quizSessionRepository,
             QuizEventListener quizEventListener
@@ -50,22 +38,13 @@ public class SubmitGuessUseCase {
                 quizEventListener;
     }
 
-    /**
-     * Processes a player's guess for an existing quiz session.
-     *
-     * @param sessionId identifies the quiz session
-     * @param selectedRegionId identifies the region selected by the player
-     * @param clickedLat optional latitude of the player's click
-     * @param clickedLng optional longitude of the player's click
-     * @return the guess result and updated quiz progress
-     * @throws IllegalArgumentException if the quiz session is not found
-    */
-
+    /** Processes a player's guess for an existing quiz session. */
     public GuessResult execute(
             QuizSessionId sessionId,
             RegionId selectedRegionId,
             Double clickedLat,
-            Double clickedLng
+            Double clickedLng,
+            Instant guessedAt
     ) {
         QuizSession session =
                 quizSessionRepository.findById(sessionId);
@@ -87,14 +66,16 @@ public class SubmitGuessUseCase {
                 result.selectedRegionId(),
                 result.correct(),
                 clickedLat,
-                clickedLng
+                clickedLng,
+                guessedAt
         );
 
         if (result.quizComplete()) {
             quizEventListener.quizFinished(
                     sessionId,
                     result.correctAnswers(),
-                    result.answeredTargets()
+                    result.answeredTargets(),
+                    guessedAt
             );
         }
 

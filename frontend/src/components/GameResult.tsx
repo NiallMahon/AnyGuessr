@@ -3,6 +3,9 @@ import "./ProfileStats.css";
 import {useEffect, useState} from "react";
 import {fetchGameResult, formatPercent, formatTime, type GameResult as Result} from "../services/statsAPI";
 
+const TRIES = 60;
+const RETRY_MS = 1000;
+
 // Picks the result heading by comparing this game with your previous best.
 function headline(result: Result) {
     if (result.previousBestPercent === null) {
@@ -21,7 +24,23 @@ function GameResult({sessionId}: {sessionId: string}) {
     const [result, setResult] = useState<Result | null>(null);
 
     useEffect(() => {
-        fetchGameResult(sessionId).then(setResult).catch(() => setResult(null));
+        let active = true;
+
+        async function load() {
+            for (let tries = 0; tries < TRIES && active; tries++) {
+                await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+                const found = await fetchGameResult(sessionId).catch(() => null);
+                if (found && active) {
+                    setResult(found);
+                    return;
+                }
+            }
+        }
+
+        void load();
+        return () => {
+            active = false;
+        };
     }, [sessionId]);
 
     if (result === null) {

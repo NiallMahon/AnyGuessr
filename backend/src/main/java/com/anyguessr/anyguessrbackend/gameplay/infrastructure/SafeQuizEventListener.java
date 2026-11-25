@@ -5,13 +5,12 @@ import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 
+import java.time.Instant;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Decorator that passes quiz events on to another listener and logs any failure
- * instead of throwing, so stats can't break gameplay if it ever fails.
- */
+/** Passes quiz events on and logs listener failures, so stats can't break gameplay. */
 public class SafeQuizEventListener implements QuizEventListener {
 
     private static final Logger log =
@@ -19,12 +18,7 @@ public class SafeQuizEventListener implements QuizEventListener {
 
     private final QuizEventListener listener;
 
-    /**
-     * Wraps a listener.
-     *
-     * @param listener the listener to pass events to
-     * @throws IllegalArgumentException if it is {@code null}
-     */
+    /** Wraps a listener. */
     public SafeQuizEventListener(
             QuizEventListener listener
     ) {
@@ -37,9 +31,7 @@ public class SafeQuizEventListener implements QuizEventListener {
         this.listener = listener;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public void quizStarted(
             QuizSessionId sessionId,
@@ -57,9 +49,7 @@ public class SafeQuizEventListener implements QuizEventListener {
         );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public void guessMade(
             QuizSessionId sessionId,
@@ -67,7 +57,8 @@ public class SafeQuizEventListener implements QuizEventListener {
             RegionId selected,
             boolean correct,
             Double clickedLat,
-            Double clickedLng
+            Double clickedLng,
+            Instant guessedAt
     ) {
         announce(
                 "guess made",
@@ -78,19 +69,19 @@ public class SafeQuizEventListener implements QuizEventListener {
                         selected,
                         correct,
                         clickedLat,
-                        clickedLng
+                        clickedLng,
+                        guessedAt
                 )
         );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public void quizFinished(
             QuizSessionId sessionId,
             int correctAnswers,
-            int answeredTargets
+            int answeredTargets,
+            Instant finishedAt
     ) {
         announce(
                 "quiz finished",
@@ -98,7 +89,8 @@ public class SafeQuizEventListener implements QuizEventListener {
                 () -> listener.quizFinished(
                         sessionId,
                         correctAnswers,
-                        answeredTargets
+                        answeredTargets,
+                        finishedAt
                 )
         );
     }

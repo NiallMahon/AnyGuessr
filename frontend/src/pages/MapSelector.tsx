@@ -13,7 +13,6 @@ import {
 
 import "./MapSelector.css";
 
-/** Displays an image or a fallback when the map thumbnail fails. */
 function MapPreview({
     imageUrl,
     mapName,
@@ -40,10 +39,6 @@ function MapPreview({
     );
 }
 
-/**
- * Confirms that map details contain positive dimensions and drawable polygons.
- * The backend remains responsible for validating and storing map data.
- */
 function hasPlayableRegions(
     details: Awaited<ReturnType<typeof getMapDetails>>
 ): boolean {
@@ -70,7 +65,6 @@ function hasPlayableRegions(
     return validDimensions && validRegions;
 }
 
-/** Lets the player choose a playable map and start a quiz. */
 function MapSelector() {
     const navigate = useNavigate();
 
@@ -87,8 +81,7 @@ function MapSelector() {
             try {
                 const fetchedMaps = await getMaps();
 
-                // A map with regions is not necessarily playable: older polygon
-                // formats may cause the map-details endpoint to fail.
+                // Older polygon formats can make the map-details endpoint fail.
                 const checkedMaps = await Promise.all(
                     fetchedMaps.map(async (map) => {
                         if (map.regionCount <= 0) {
@@ -140,7 +133,6 @@ function MapSelector() {
         };
     }, []);
 
-    /** Checks map details again before creating a gameplay session. */
     async function selectMap(mapId: number) {
         if (startingMapId !== null || unavailableMapIds.includes(mapId)) {
             return;
@@ -167,6 +159,7 @@ function MapSelector() {
                     sessionId: quiz.sessionId,
                     mapId: quiz.mapId,
                     initialTarget: quiz.currentTarget,
+                    targets: quiz.targets,
                 },
             });
         } catch (err) {

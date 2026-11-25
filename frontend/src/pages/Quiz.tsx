@@ -1,36 +1,65 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import {
-  startQuiz,
-  submitGuess,
-  type GuessResponse,
-} from "../services/gameplayAPI";
+import { startQuiz, submitGuess } from "../services/gameplayAPI";
 import GameResult from "../components/GameResult";
 import QuizMap from "../components/Map/QuizMap";
 import "./Quiz.css";
 
-/** Session details passed from the Map Selector through React Router. */
 interface QuizLocationState {
   sessionId: string;
   mapId: string;
   initialTarget: string;
+  targets: string[];
 }
 
-/**
- * Presents the playable polygon map and quiz progress.
- * The backend remains responsible for correctness, scoring, and correction rules.
- */
+interface Progress {
+  currentTarget: string;
+  completed: string[];
+  correctAnswers: number;
+  answeredTargets: number;
+  correctionRequired: boolean;
+  complete: boolean;
+}
+
+// Mirrors the backend QuizSession rules so feedback is instant.
+function applyGuess(targets: string[], progress: Progress, selected: string): Progress {
+  const correct = selected === progress.currentTarget;
+  const firstTry = !progress.correctionRequired;
+  const scored = {
+    answeredTargets: progress.answeredTargets + (firstTry ? 1 : 0),
+    correctAnswers: progress.correctAnswers + (firstTry && correct ? 1 : 0),
+  };
+
+  if (!correct) {
+    return { ...progress, ...scored, correctionRequired: true };
+  }
+
+  const completed = [...progress.completed, progress.currentTarget];
+  const next = targets.find((target) => !completed.includes(target));
+
+  return {
+    ...scored,
+    completed,
+    currentTarget: next ?? progress.currentTarget,
+    correctionRequired: false,
+    complete: next === undefined,
+  };
+}
+
 function Quiz() {
   const location = useLocation();
   const navigate = useNavigate();
   const quizState = location.state as QuizLocationState | null;
 
-  const [currentTarget, setCurrentTarget] = useState(
-    quizState?.initialTarget ?? ""
-  );
-  const [lastResult, setLastResult] = useState<GuessResponse | null>(null);
+  const [progress, setProgress] = useState<Progress>({
+    currentTarget: quizState?.initialTarget ?? "",
+    completed: [],
+    correctAnswers: 0,
+    answeredTargets: 0,
+    correctionRequired: false,
+    complete: false,
+  });
   const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,13 +82,11 @@ function Quiz() {
     );
   }
 
-  const { sessionId, mapId } = quizState;
-  const complete = lastResult?.quizComplete ?? false;
-  const correctAnswers = lastResult?.correctAnswers ?? 0;
-  const answeredTargets = lastResult?.answeredTargets ?? 0;
-  const accuracy = lastResult?.accuracy ?? 0;
+  const { sessionId, mapId, targets } = quizState;
+  const { complete, correctAnswers, answeredTargets } = progress;
+  const accuracy =
+    answeredTargets === 0 ? 0 : (correctAnswers * 100) / answeredTargets;
 
-  /** Starts a fresh quiz on the same map, without resetting domain rules locally. */
   async function playAgain() {
     if (restarting) return;
     setRestarting(true);
@@ -78,6 +105,7 @@ function Quiz() {
           sessionId: quiz.sessionId,
           mapId: quiz.mapId,
           initialTarget: quiz.currentTarget,
+          targets: quiz.targets,
         },
       });
     } catch (err) {
@@ -87,39 +115,19 @@ function Quiz() {
     }
   }
 
-  /** Submits the selected polygon and uses the backend response as source of truth. */
-  async function handleGuess(regionId: string) {
-    if (sending || complete) return;
+  function handleGuess(regionId: string) {
+    if (complete) return;
 
-    const correcting = lastResult?.correctionRequired ?? false;
-    setSending(true);
-    setError(null);
+    const next = applyGuess(targets, progress, regionId);
+    submitGuess(sessionId, regionId);
+    setProgress(next);
 
-    try {
-      const result = await submitGuess(sessionId, regionId);
-      setLastResult(result);
-
-      if (result.quizComplete) {
-        setMessage("Quiz complete!");
-        return;
-      }
-
-      setCurrentTarget(result.currentTargetRegionId);
-
-      if (correcting && result.correct) {
-        setMessage("Correction accepted. Moving to the next target.");
-      } else if (result.correct) {
-        setMessage("Correct! Well done.");
-      } else if (result.correctionRequired) {
-        setMessage("Not quite. Select the requested region to continue.");
-      } else {
-        setMessage("Selection recorded.");
-      }
-    } catch (err) {
-      console.error("Unable to submit guess:", err);
-      setError("Unable to submit your guess. Please try again.");
-    } finally {
-      setSending(false);
+    if (next.correctionRequired) {
+      setMessage("Not quite. Select the requested region to continue.");
+    } else if (progress.correctionRequired) {
+      setMessage("Correction accepted. Moving to the next target.");
+    } else {
+      setMessage("Correct! Well done.");
     }
   }
 
@@ -140,22 +148,15 @@ function Quiz() {
                   <p className="quiz-stage-label">YOUR CHALLENGE</p>
                   <p>Click the region you think is correct.</p>
                 </div>
-                {sending && (
-                  <span className="quiz-submitting" role="status">
-                    Checking answer…
-                  </span>
-                )}
               </div>
 
               <div className="quiz-map-panel">
                 <QuizMap
                   key={mapId}
                   mapId={mapId}
-                  targetRegionId={currentTarget}
-                  disabled={sending}
-                  onRegionClick={(regionId) => {
-                    void handleGuess(regionId);
-                  }}
+                  targetRegionId={progress.currentTarget}
+                  disabled={false}
+                  onRegionClick={handleGuess}
                 />
               </div>
             </section>
@@ -163,7 +164,7 @@ function Quiz() {
             {message && (
               <div
                 className={`quiz-feedback ${
-                  lastResult?.correctionRequired
+                  progress.correctionRequired
                     ? "quiz-feedback--warning"
                     : "quiz-feedback--success"
                 }`}
@@ -250,7 +251,6 @@ function Quiz() {
   );
 }
 
-/** Remounts the quiz when navigation starts a new gameplay session. */
 function QuizPage() {
   const location = useLocation();
   return <Quiz key={location.key} />;
