@@ -101,16 +101,11 @@
   transition: fill-opacity 120ms ease, stroke-width 120ms ease;
 }
 
-.quiz-map-panel polygon:hover {
-  fill-opacity: 0.38;
-  stroke-width: 3;
-}
-
+.quiz-map-panel polygon:hover,
 .quiz-map-panel polygon:focus-visible {
   outline: none;
-  fill-opacity: 0.42;
-  stroke-width: 5;
-  stroke: #6d5de6;
+  fill-opacity: 0;
+  stroke: none;
 }
 
 .quiz-feedback {
