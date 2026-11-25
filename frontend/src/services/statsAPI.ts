@@ -1,4 +1,4 @@
-// Fetches a player's stats, map detail, game results, comparisons and map leaderboards, deletes a player's stats, formats stat values, and holds the friends list stats compares against.
+// Fetches a player's stats, map detail, game results, comparisons and map leaderboards, deletes a player's stats, formats stat values, and fetches the player's friends.
 const BASE = '/api/stats';
 
 export interface RecentGame {
@@ -100,12 +100,6 @@ export interface Friend {
     location: string;
 }
 
-export const FRIENDS: Friend[] = [
-    {userId: 12, name: "AoifeK", location: "Cork, Ireland"},
-    {userId: 13, name: "ciaranb_92", location: "Dublin, Ireland"},
-    {userId: 14, name: "maevegeo", location: "Limerick, Ireland"},
-];
-
 // Formats a percentage to one decimal, e.g. 66.7%.
 export function formatPercent(percent: number) {
     return `${Math.round(percent * 10) / 10}%`;
@@ -145,6 +139,12 @@ export function fetchMapDetail(userId: number, mapId: number): Promise<MapDetail
 // Fetches two players' bests on every map either has played.
 export function fetchComparison(userId: number, otherId: number): Promise<MapComparison[]> {
     return get<MapComparison[]>(`/users/${userId}/compare/${otherId}`);
+}
+
+export async function fetchFriends(userId: number): Promise<Friend[]> {
+    const res = await fetch(`/api/friends/user/${userId}`);
+    if (!res.ok) throw new Error(`/api/friends/user/${userId} failed: ${res.status}`);
+    return (await res.json()) as Friend[];
 }
 
 // Fetches a finished quiz's result, or null if it isn't found.
