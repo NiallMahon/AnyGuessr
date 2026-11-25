@@ -141,10 +141,9 @@ if (!targetRegion) {
             points={region.points
               .map((point) => `${point.x},${point.y}`)
               .join(" ")}
-            fill="#2563eb"
-            fillOpacity={0.2}
-            stroke="#1d4ed8"
-            strokeWidth={2}
+            fill="#000"
+            fillOpacity={0}
+            stroke="none"
             role="button"
             tabIndex={disabled ? -1 : 0}
             aria-label={`Select ${region.name}`}
