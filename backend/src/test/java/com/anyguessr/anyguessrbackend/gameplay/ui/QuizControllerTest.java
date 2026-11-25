@@ -1,4 +1,3 @@
-// Tests for the quiz REST endpoints.
 package com.anyguessr.anyguessrbackend.gameplay.ui;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
@@ -8,6 +7,8 @@ import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizMapRepository;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSession;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
+import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionSnapshot;
+import com.anyguessr.anyguessrbackend.gameplay.domain.QuizStatus;
 import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 import com.anyguessr.anyguessrbackend.gameplay.infrastructure.InMemoryQuizSessionRepository;
 
@@ -17,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/** Tests for the quiz REST endpoints. */
 class QuizControllerTest {
 
     @Test
@@ -71,10 +73,14 @@ class QuizControllerTest {
                 List.of("FR", "DE")
                         .contains(response.currentTarget())
         );
+        assertEquals(
+                response.currentTarget(),
+                response.targets().get(0)
+        );
     }
 
     @Test
-    void submitGuessReturnsQuizResultResponse() {
+    void submitGuessIsQueuedThenScored() {
 
         QuizSessionId sessionId =
                 new QuizSessionId("quiz-1");
@@ -119,34 +125,26 @@ class QuizControllerTest {
         SubmitGuessRequest request =
                 new SubmitGuessRequest("FR", null, null);
 
-        GuessResponse response =
-                controller.submitGuess(
-                        "quiz-1",
-                        request
-                );
+        controller.submitGuess(
+                "quiz-1",
+                request
+        );
+        controller.close();
 
-        assertTrue(response.correct());
-        assertFalse(response.correctionRequired());
+        QuizSessionSnapshot snapshot =
+                repository.findById(sessionId).snapshot();
+
         assertEquals(
-                "FR",
-                response.selectedRegionId()
-        );
-        assertEquals(
-                "FR",
-                response.targetRegionId()
+                1,
+                snapshot.correctAnswers()
         );
         assertEquals(
                 1,
-                response.correctAnswers()
+                snapshot.answeredTargets()
         );
         assertEquals(
-                1,
-                response.answeredTargets()
+                QuizStatus.COMPLETE,
+                snapshot.status()
         );
-        assertEquals(
-                100.0,
-                response.accuracy()
-        );
-        assertTrue(response.quizComplete());
     }
 }

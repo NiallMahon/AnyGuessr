@@ -1,44 +1,26 @@
-// Starts quizzes and submits guesses to the backend.
+// Sends guesses to the backend in order without the game waiting on them.
 const BASE = '/api/quizzes';
 
-/**
- * Data returned by the backend when a new quiz starts.
- * Includes the session identifier and initial target region.
- */
 export interface StartQuizResponse {
   sessionId: string;
   mapId: string;
   currentTarget: string;
+  targets: string[];
 }
 
-/**
- * Result of submitting a guess.
- *
- * Includes whether the guess was correct, whether a correction
- * is required, the updated score and quiz completion status.
- */
-export interface GuessResponse {
-  correct: boolean;
-  correctionRequired: boolean;
-  selectedRegionId: string;
-  targetRegionId: string;
-  currentTargetRegionId: string;
-  correctAnswers: number;
-  answeredTargets: number;
-  accuracy: number;
-  quizComplete: boolean;
-}
+let queue: Promise<void> = Promise.resolve();
 
-async function post<T>(
+async function post(
   path: string,
   body: unknown
-): Promise<T> {
+): Promise<Response> {
   const response = await fetch(`${BASE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    keepalive: true,
   });
 
   if (!response.ok) {
@@ -47,47 +29,37 @@ async function post<T>(
     );
   }
 
-  return response.json() as Promise<T>;
+  return response;
 }
 
-/**
- * Requests a new quiz session for the selected map.
- *
- * @param mapId Identifier of the selected map.
- * @param userId Player identifier, or null when not provided.
- * @returns The new quiz session details.
- */
-export function startQuiz(
+export async function startQuiz(
   mapId: string,
   userId: number | null
 ): Promise<StartQuizResponse> {
-  return post<StartQuizResponse>('', {
+  const response = await post('', {
     mapId,
     userId,
   });
+
+  return response.json() as Promise<StartQuizResponse>;
 }
 
-/**
- * Sends a player's selected region to the backend for evaluation.
- *
- * @param sessionId Identifier of the active quiz session.
- * @param selectedRegionId Region selected by the player.
- * @param clickedLat Optional latitude of the click.
- * @param clickedLng Optional longitude of the click.
- * @returns The guess result and updated quiz progress.
- */
 export function submitGuess(
   sessionId: string,
   selectedRegionId: string,
   clickedLat?: number,
   clickedLng?: number
-): Promise<GuessResponse> {
-  return post<GuessResponse>(
-    `/${sessionId}/guesses`,
-    {
-      selectedRegionId,
-      clickedLat,
-      clickedLng,
-    }
-  );
+): void {
+  queue = queue
+    .then(() =>
+      post(`/${sessionId}/guesses`, {
+        selectedRegionId,
+        clickedLat,
+        clickedLng,
+      })
+    )
+    .then(
+      () => undefined,
+      (err) => console.error('Unable to send guess:', err)
+    );
 }

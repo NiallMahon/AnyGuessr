@@ -1,4 +1,3 @@
-// Records gameplay's quiz start, guesses and final score as stats games.
 package com.anyguessr.anyguessrbackend.stats.infrastructure;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.QuizEventListener;
@@ -13,20 +12,14 @@ import com.anyguessr.anyguessrbackend.stats.domain.UserId;
 
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Adapter that listens to gameplay's quiz events and records them as stats;
- * translates gameplay's IDs into stats' own IDs.
- */
+import java.time.Instant;
+
+/** Records gameplay's quiz events as stats, translating gameplay IDs into stats IDs. */
 public class GameplayStatsListener implements QuizEventListener {
 
     private final StatsService statsService;
 
-    /**
-     * Creates the listener.
-     *
-     * @param statsService the stats service to record games with
-     * @throws IllegalArgumentException if the service is {@code null}
-     */
+    /** Creates the listener. */
     public GameplayStatsListener(StatsService statsService) {
         if (statsService == null) {
             throw new IllegalArgumentException("Stats service must not be null");
@@ -35,13 +28,7 @@ public class GameplayStatsListener implements QuizEventListener {
         this.statsService = statsService;
     }
 
-    /**
-     * Starts a stats game when a signed-in player starts a quiz.
-     *
-     * @param sessionId the quiz session
-     * @param userId    the player, or {@code null} for a guest
-     * @param mapId     the map being played
-     */
+    /** Starts a stats game when a signed-in player starts a quiz. */
     @Override
     public void quizStarted(
             QuizSessionId sessionId,
@@ -59,16 +46,7 @@ public class GameplayStatsListener implements QuizEventListener {
         );
     }
 
-    /**
-     * Records a guess made in a quiz.
-     *
-     * @param sessionId  the quiz session
-     * @param target     the region the player was asked to find
-     * @param selected   the region the player clicked
-     * @param correct    whether the guess was right
-     * @param clickedLat latitude of the click, or {@code null}
-     * @param clickedLng longitude of the click, or {@code null}
-     */
+    /** Records a guess made in a quiz. */
     @Override
     public void guessMade(
             QuizSessionId sessionId,
@@ -76,7 +54,8 @@ public class GameplayStatsListener implements QuizEventListener {
             com.anyguessr.anyguessrbackend.gameplay.domain.RegionId selected,
             boolean correct,
             Double clickedLat,
-            Double clickedLng
+            Double clickedLng,
+            Instant guessedAt
     ) {
         statsService.recordGuess(
                 new GameSessionId(sessionId.value()),
@@ -86,23 +65,19 @@ public class GameplayStatsListener implements QuizEventListener {
                         correct,
                         clickedLat,
                         clickedLng
-                )
+                ),
+                guessedAt
         );
     }
 
-    /**
-     * Finishes the stats game with the quiz's final score.
-     *
-     * @param sessionId       the quiz session
-     * @param correctAnswers  targets right on the first try
-     * @param answeredTargets targets answered in total
-     */
+    /** Finishes the stats game with the quiz's final score. */
     @Override
     @Transactional
-    public void quizFinished(QuizSessionId sessionId, int correctAnswers, int answeredTargets) {
+    public void quizFinished(QuizSessionId sessionId, int correctAnswers, int answeredTargets, Instant finishedAt) {
         statsService.finishGame(
                 new GameSessionId(sessionId.value()),
-                new Score(correctAnswers, answeredTargets - correctAnswers)
+                new Score(correctAnswers, answeredTargets - correctAnswers),
+                finishedAt
         );
     }
 }

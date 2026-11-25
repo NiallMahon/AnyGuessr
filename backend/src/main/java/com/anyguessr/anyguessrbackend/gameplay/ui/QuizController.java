@@ -1,40 +1,38 @@
-// REST endpoints for starting a quiz and submitting guesses.
 package com.anyguessr.anyguessrbackend.gameplay.ui;
 
 import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizResult;
 import com.anyguessr.anyguessrbackend.gameplay.application.StartQuizUseCase;
 import com.anyguessr.anyguessrbackend.gameplay.application.SubmitGuessUseCase;
-import com.anyguessr.anyguessrbackend.gameplay.domain.GuessResult;
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.QuizSessionId;
 import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Provides REST endpoints for starting quizzes and submitting guesses.
- *
- * Delegates gameplay operations to the application use cases.
- */
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+/** REST endpoints for starting quizzes and queueing their guesses. */
 @RestController
 @RequestMapping("/api/quizzes")
-public class QuizController {
+public class QuizController implements AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(QuizController.class);
 
     private final StartQuizUseCase startQuizUseCase;
     private final SubmitGuessUseCase submitGuessUseCase;
+    private final ExecutorService queue = Executors.newSingleThreadExecutor();
 
-    /**
-     * Creates the quiz controller with its required use cases.
-     *
-     * @param startQuizUseCase handles quiz creation
-     * @param submitGuessUseCase handles guess submission
-    */
-
+    /** Creates the quiz controller with its required use cases. */
     public QuizController(
             StartQuizUseCase startQuizUseCase,
             SubmitGuessUseCase submitGuessUseCase
@@ -46,13 +44,7 @@ public class QuizController {
                 submitGuessUseCase;
     }
 
-    /**
-     * Starts a quiz for the requested map and optional user.
-     *
-     * @param request contains the map ID and optional user ID
-     * @return the new session ID, map ID and initial target
-    */
-
+    /** Starts a quiz for the requested map and optional user. */
     @PostMapping
     public StartQuizResponse startQuiz(
             @RequestBody StartQuizRequest request
@@ -66,29 +58,41 @@ public class QuizController {
         return StartQuizResponse.from(result);
     }
 
-    /**
-     * Submits a region guess for an existing quiz session.
-     *
-     * @param sessionId identifies the quiz session
-     * @param request contains the selected region and optional coordinates
-     * @return the result of the guess and updated quiz progress
-    */
-
+    /** Queues a region guess for an existing quiz session. */
     @PostMapping("/{sessionId}/guesses")
-    public GuessResponse submitGuess(
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void submitGuess(
             @PathVariable String sessionId,
             @RequestBody SubmitGuessRequest request
     ) {
-        GuessResult result =
+        Instant guessedAt = Instant.now();
+
+        enqueue("guess in quiz " + sessionId, () ->
                 submitGuessUseCase.execute(
                         new QuizSessionId(sessionId),
                         new RegionId(
                                 request.selectedRegionId()
                         ),
                         request.clickedLat(),
-                        request.clickedLng()
-                );
+                        request.clickedLng(),
+                        guessedAt
+                )
+        );
+    }
 
-        return GuessResponse.from(result);
+    /** Scores the guesses still queued, then stops the queue. */
+    @Override
+    public void close() {
+        queue.close();
+    }
+
+    private void enqueue(String event, Runnable work) {
+        queue.execute(() -> {
+            try {
+                work.run();
+            } catch (RuntimeException e) {
+                log.error("Gameplay could not score the {}", event, e);
+            }
+        });
     }
 }

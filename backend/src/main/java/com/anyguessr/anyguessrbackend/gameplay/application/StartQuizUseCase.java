@@ -10,28 +10,14 @@ import com.anyguessr.anyguessrbackend.gameplay.domain.RegionId;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Handles the creation of new quiz sessions.
- *
- * Retrieves the regions associated with a map, creates and
- * persists a quiz session, and publishes a quiz-started event.
- */
-
+/** Handles the creation of new quiz sessions. */
 public class StartQuizUseCase {
 
     private final QuizSessionRepository quizSessionRepository;
     private final QuizMapRepository quizMapRepository;
     private final QuizEventListener quizEventListener;
 
-    /**
-     * Creates the use case with its required collaborators.
-     *
-     * @param quizSessionRepository stores quiz sessions
-     * @param quizMapRepository retrieves regions for a selected map
-     * @param quizEventListener receives quiz lifecycle events
-     * @throws IllegalArgumentException if the event listener is null
-    */
-
+    /** Creates the use case with its required collaborators. */
     public StartQuizUseCase(
             QuizSessionRepository quizSessionRepository,
             QuizMapRepository quizMapRepository,
@@ -48,14 +34,7 @@ public class StartQuizUseCase {
         this.quizEventListener = quizEventListener;
     }
 
-    /**
-     * Starts a new quiz for the specified map.
-     *
-     * @param mapId identifies the selected map
-     * @param userId identifies the player, or null for an anonymous session
-     * @return the session ID, selected map ID and initial target region
-    */
-
+    /** Starts a new quiz for the specified map. */
     public StartQuizResult execute(
             MapId mapId,
             Long userId
@@ -87,7 +66,8 @@ public class StartQuizUseCase {
         return new StartQuizResult(
                 sessionId,
                 mapId,
-                session.getCurrentTarget()
+                session.getCurrentTarget(),
+                session.snapshot().targetRegionIds()
         );
     }
 }

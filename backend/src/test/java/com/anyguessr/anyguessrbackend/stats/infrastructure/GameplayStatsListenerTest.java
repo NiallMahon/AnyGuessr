@@ -1,4 +1,3 @@
-// Integration test from gameplay's quiz events, through the database, to the stats API, including ranking and deleting.
 package com.anyguessr.anyguessrbackend.stats.infrastructure;
 
 import com.anyguessr.anyguessrbackend.gameplay.domain.MapId;
@@ -15,10 +14,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/** Integration test from gameplay's quiz events through the database to every stats endpoint. */
 @SpringBootTest
 @TestPropertySource("classpath:stats-test.properties")
 @Sql("classpath:stats-test-data.sql")
@@ -75,12 +76,12 @@ class GameplayStatsListenerTest {
         RegionId france = new RegionId("1");
 
         listener.quizStarted(session, userId, new MapId("1"));
-        listener.guessMade(session, france, firstGuessRight ? france : new RegionId("2"), firstGuessRight, 53.3, -6.2);
+        listener.guessMade(session, france, firstGuessRight ? france : new RegionId("2"), firstGuessRight, 53.3, -6.2, Instant.now());
         if (!firstGuessRight) {
-            listener.guessMade(session, france, france, true, null, null);
+            listener.guessMade(session, france, france, true, null, null, Instant.now());
         }
-        listener.guessMade(session, new RegionId("2"), new RegionId("2"), true, null, null);
-        listener.guessMade(session, new RegionId("3"), new RegionId("3"), true, null, null);
-        listener.quizFinished(session, firstGuessRight ? 3 : 2, 3);
+        listener.guessMade(session, new RegionId("2"), new RegionId("2"), true, null, null, Instant.now());
+        listener.guessMade(session, new RegionId("3"), new RegionId("3"), true, null, null, Instant.now());
+        listener.quizFinished(session, firstGuessRight ? 3 : 2, 3, Instant.now());
     }
 }
