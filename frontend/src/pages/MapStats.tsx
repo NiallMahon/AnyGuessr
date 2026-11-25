@@ -6,10 +6,11 @@ import {score} from "../components/MapLeaderboard";
 import {BadgeRow} from "../components/ProfileStats";
 import {
     fetchComparison,
+    fetchFriends,
     fetchMapDetail,
     formatPercent,
     formatTime,
-    FRIENDS,
+    type Friend,
     type MapBadge,
     type MapBest,
     type MapComparison,
@@ -159,11 +160,16 @@ function WeakRegions({regions}: {regions: WeakRegion[]}) {
 
 // Ranks user against friends for a given map.
 function FriendCompare({userId, best}: {userId: number; best: MapBest}) {
+    const [friends, setFriends] = useState<Friend[]>([]);
     const [rows, setRows] = useState<MapComparison[] | null>(null);
     const [failed, setFailed] = useState(false);
 
     useEffect(() => {
-        Promise.all(FRIENDS.map((friend) => fetchComparison(userId, friend.userId)))
+        fetchFriends(userId)
+            .then((list) => {
+                setFriends(list);
+                return Promise.all(list.map((friend) => fetchComparison(userId, friend.userId)));
+            })
             .then((lists) => setRows(lists.map((maps) => (
                 maps.find((map) => map.mapId === best.mapId) ?? {mapId: best.mapId, mapName: best.mapName, yours: best, theirs: null}
             ))))
@@ -172,7 +178,7 @@ function FriendCompare({userId, best}: {userId: number; best: MapBest}) {
 
     const players = rows === null ? [] : [
         {userId, name: "You", best},
-        ...FRIENDS.map((friend, index) => ({userId: friend.userId, name: friend.name, best: rows[index].theirs}))
+        ...friends.map((friend, index) => ({userId: friend.userId, name: friend.name, best: rows[index].theirs}))
     ].sort((a, b) => (a.best?.place ?? Infinity) - (b.best?.place ?? Infinity));
 
     return (
@@ -181,9 +187,9 @@ function FriendCompare({userId, best}: {userId: number; best: MapBest}) {
                 <h3>Friends</h3>
                 <span>You: {score(best)}</span>
             </header>
-            {FRIENDS.length === 0 ? <p className="stats-card-empty">No friends to compare with yet.</p>
-                : failed ? <p className="stats-card-empty">Could not load this comparison.</p>
+            {failed ? <p className="stats-card-empty">Could not load this comparison.</p>
                 : rows === null ? <p className="stats-card-empty">Loading...</p>
+                : friends.length === 0 ? <p className="stats-card-empty">No friends to compare with yet.</p>
                 : (
                     <ol className="stats-rows stats-scroll">
                         {players.map((player) => (

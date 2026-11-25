@@ -1,7 +1,7 @@
 // The logged-in player's profile page: header, stats, comments and friends.
 import "./Profile.css";
 import {useEffect, useState} from "react";
-import {fetchUserStats, FRIENDS, type UserStats} from "../services/statsAPI";
+import {fetchFriends, fetchUserStats, type Friend, type UserStats} from "../services/statsAPI";
 import {
     DeleteStats,
     MapsPlayed,
@@ -18,15 +18,20 @@ type UserProfile = {
 };
 
 // Searchable list of the player's friends.
-function FriendsCard() {
+function FriendsCard({userId}: {userId: number}) {
+    const [friends, setFriends] = useState<Friend[]>([]);
     const [search, setSearch] = useState("");
-    const matches = FRIENDS.filter((friend) => friend.name.toLowerCase().includes(search.trim().toLowerCase()));
+    const matches = friends.filter((friend) => friend.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+    useEffect(() => {
+        fetchFriends(userId).then(setFriends).catch(() => setFriends([]));
+    }, [userId]);
 
     return (
         <section className="stats-card profile-friends">
             <header className="stats-card-header">
                 <h3>Friends</h3>
-                <span>{FRIENDS.length}</span>
+                <span>{friends.length}</span>
             </header>
             <input
                 type="search"
@@ -37,7 +42,7 @@ function FriendsCard() {
                 onChange={(event) => setSearch(event.target.value)}
             />
             {matches.length === 0 ? (
-                <p className="stats-card-empty">{FRIENDS.length === 0 ? "No friends yet." : "No friends match that search."}</p>
+                <p className="stats-card-empty">{friends.length === 0 ? "No friends yet." : "No friends match that search."}</p>
             ) : (
                 <ul className="stats-map-rows stats-scroll">
                     {matches.map((friend) => (
@@ -159,7 +164,7 @@ function Profile() {
                     </div>
                     <div className="profile-column">
                         {stats && <TrophyShelf trophies={stats.trophies}/>}
-                        <FriendsCard/>
+                        <FriendsCard userId={profile.id}/>
                     </div>
                 </div>
                 {stats && <DeleteStats userId={Number(userId)} onStatsDeleted={() => fetchUserStats(Number(userId)).then(setStats)}/>}
