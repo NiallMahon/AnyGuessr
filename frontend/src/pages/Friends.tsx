@@ -23,6 +23,7 @@ interface RequestView {
     recipientId?: number | string;
     targetUserId?: number | string;
     otherUserId?: number | string;
+    otherUsername?: string | null;
     requesterUsername?: string | null;
     recipientUsername?: string | null;
     targetUsername?: string | null;
@@ -129,6 +130,7 @@ function extractRequestLabel(req: RequestView, fallbackId: number | string): str
             : null;
 
     const candidate =
+        req.otherUsername ??
         req.recipientUsername ??
         req.targetUsername ??
         req.username ??
@@ -687,8 +689,8 @@ export default function Friends() {
                         ) : (
                             <div className="friends-grid">
                                 {incomingRequests.map((req, i) => {
-                                    const id = toFiniteNumber(req.requesterUserId ?? req.requesterId ?? req.id) ?? i;
-                                    const name = extractRequestLabel(req, id);
+                                    const id = toFiniteNumber(req.requesterUserId ?? req.requesterId ?? req.otherUserId ?? req.id);
+                                    const name = extractRequestLabel(req, id ?? i);
                                     return (
                                         <div key={`${id}-${i}`} className="friend-card">
                                             <div className="friend-card-info">
@@ -698,14 +700,16 @@ export default function Friends() {
                                                 <button
                                                     type="button"
                                                     className="friends-input friends-action-btn"
-                                                    onClick={() => handleAcceptRequest(id)}
+                                                    disabled={id === null}
+                                                    onClick={() => id !== null && handleAcceptRequest(id)}
                                                 >
                                                     Accept
                                                 </button>
                                                 <button
                                                     type="button"
                                                     className="friend-delete-btn"
-                                                    onClick={() => handleDeclineRequest(id)}
+                                                    disabled={id === null}
+                                                    onClick={() => id !== null && handleDeclineRequest(id)}
                                                 >
                                                     Decline
                                                 </button>
