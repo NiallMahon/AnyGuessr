@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 public class QuizController implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(QuizController.class);
+    private static final int TRIES = 3;
 
     private final StartQuizUseCase startQuizUseCase;
     private final SubmitGuessUseCase submitGuessUseCase;
@@ -88,10 +89,16 @@ public class QuizController implements AutoCloseable {
 
     private void enqueue(String event, Runnable work) {
         queue.execute(() -> {
-            try {
-                work.run();
-            } catch (RuntimeException e) {
-                log.error("Gameplay could not score the {}", event, e);
+            for (int attempt = 1; ; attempt++) {
+                try {
+                    work.run();
+                    return;
+                } catch (RuntimeException e) {
+                    if (attempt == TRIES) {
+                        log.error("Gameplay could not score the {}", event, e);
+                        return;
+                    }
+                }
             }
         });
     }

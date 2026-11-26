@@ -50,16 +50,20 @@ export function submitGuess(
   clickedLat?: number,
   clickedLng?: number
 ): void {
-  queue = queue
-    .then(() =>
-      post(`/${sessionId}/guesses`, {
-        selectedRegionId,
-        clickedLat,
-        clickedLng,
-      })
-    )
-    .then(
-      () => undefined,
-      (err) => console.error('Unable to send guess:', err)
-    );
+  queue = queue.then(async () => {
+    for (let tries = 1; tries <= 20; tries++) {
+      try {
+        await post(`/${sessionId}/guesses`, {
+          selectedRegionId,
+          clickedLat,
+          clickedLng,
+        });
+        return;
+      } catch (err) {
+        console.error('Unable to send guess, retrying:', err);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+    console.error('Gave up sending guess for quiz', sessionId);
+  });
 }
