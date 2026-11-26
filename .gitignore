@@ -68,6 +68,7 @@ web_modules/
 # dotenv environment variable files
 backend/.env
 .env.*
+.env
 !.env.example
 .env.aws
 

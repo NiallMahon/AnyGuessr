@@ -142,9 +142,7 @@ function Profile() {
                     <h1>{profile?.name}</h1>
                     <p>{profile?.location}</p>
                 </div>
-                <button className="profile-edit" type="button">
-                Edit Profile
-                </button>
+                
                 <button className="log-out" type="button" onClick={handleLogout}>
                     Log Out
                 </button>
@@ -154,13 +152,7 @@ function Profile() {
                 {!stats && <p>{statsError ?? "Loading stats..."}</p>}
                 <div className="profile-grid">
                     <div className="profile-column">
-                        {stats && <MapsPlayed maps={stats.bestPerMap}/>}
-                        <section className="stats-card">
-                            <header className="stats-card-header">
-                                <h3>Comments</h3>
-                            </header>
-                            <p>CS.com: This guy is quite litterally the worst player to touch the game</p>
-                        </section>
+                        {stats && <MapsPlayed maps={stats.bestPerMap}/>}    
                     </div>
                     <div className="profile-column">
                         {stats && <TrophyShelf trophies={stats.trophies}/>}
